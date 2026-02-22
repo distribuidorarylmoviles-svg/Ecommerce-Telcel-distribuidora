@@ -1,0 +1,145 @@
+.service-form-page {
+  max-width: 1200px;
+  margin: 40px auto 60px;
+  padding: 0 16px;
+}
+
+.service-form-wrapper {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 34px;
+  display: grid;
+  grid-template-columns: 0.9fr 1.2fr;
+  gap: 34px;
+  align-items: center;
+}
+
+.image-card {
+  border-radius: 18px;
+  border: 3px solid #e7f0ff;
+  box-shadow: 0 8px 26px rgba(0, 51, 160, 0.12);
+  padding: 24px;
+  background: #fff;
+
+  img {
+    width: 100%;
+    display: block;
+    border-radius: 14px;
+  }
+}
+
+.form-column {
+  header {
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    margin: 0 0 6px;
+    color: #0033a0;
+    font-size: 34px;
+    line-height: 1.1;
+  }
+
+  p {
+    margin: 0;
+    color: #50657a;
+  }
+}
+
+.alert-success {
+  margin-bottom: 14px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #14532d;
+  border-radius: 10px;
+  padding: 10px 12px;
+
+  &.warning {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #9a3412;
+  }
+}
+
+.alert-error {
+  margin-bottom: 14px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+form {
+  display: grid;
+  gap: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 2px solid #c5d4e3;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 15px;
+  background: #f9fbff;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0033a0;
+    box-shadow: 0 0 0 4px rgba(0, 51, 160, 0.1);
+    background: #fff;
+  }
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #0033a0, #0a4abf);
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 930px) {
+  .service-form-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .image-column {
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .service-form-wrapper {
+    padding: 22px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-column h1 {
+    font-size: 28px;
+  }
+}

@@ -1,0 +1,173 @@
+<main class="service-page">
+  <section class="service-header">
+    <h1><i class="fas fa-exchange-alt"></i> Portabilidad Telcel</h1>
+    <p>Cámbiate a Telcel y mantén tu número.</p>
+  </section>
+
+  <section class="service-content">
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <p>
+        <strong>¡Es muy fácil!</strong> Trae tu número a Telcel sin cambiar de chip.
+        El proceso es gratuito y normalmente se completa en menos de 24 horas.
+      </p>
+    </div>
+
+    @if (error()) {
+      <div class="alert-error">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error() }}
+      </div>
+    }
+
+    @if (sent()) {
+      <div class="alert-success" [class.warning]="!emailSent()">
+        <i class="fas" [class.fa-check-circle]="emailSent()" [class.fa-exclamation-triangle]="!emailSent()"></i>
+        {{ responseMessage() }}
+      </div>
+    }
+
+    <div class="tabs-container">
+      <div class="tabs-header">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="currentTab() === 'personal'"
+          (click)="goToTab('personal')"
+        >
+          <i class="fas fa-user"></i> Datos Personales
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="currentTab() === 'portabilidad'"
+          (click)="goToTab('portabilidad')"
+        >
+          <i class="fas fa-exchange-alt"></i> Portabilidad
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="currentTab() === 'adicional'"
+          (click)="goToTab('adicional')"
+        >
+          <i class="fas fa-comment"></i> Información Adicional
+        </button>
+      </div>
+
+      <form #portaForm="ngForm" (ngSubmit)="onSubmit(portaForm)">
+        @if (currentTab() === 'personal') {
+          <div class="tab-content">
+            <div class="form-grid">
+              <label>
+                Nombre(s) *
+                <input [(ngModel)]="form.nombre" name="nombre" required placeholder="Ingresa tu(s) nombre(s)">
+              </label>
+              <label>
+                Apellido Paterno *
+                <input [(ngModel)]="form.apellidoPaterno" name="apellidoPaterno" required placeholder="Ingresa tu apellido paterno">
+              </label>
+              <label>
+                Apellido Materno *
+                <input [(ngModel)]="form.apellidoMaterno" name="apellidoMaterno" required placeholder="Ingresa tu apellido materno">
+              </label>
+              <label>
+                CURP *
+                <input
+                  [(ngModel)]="form.curp"
+                  name="curp"
+                  maxlength="18"
+                  required
+                  placeholder="ABCD123456HDFRLL00"
+                >
+              </label>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn-next" (click)="goToTab('portabilidad')">
+                Siguiente <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (currentTab() === 'portabilidad') {
+          <div class="tab-content">
+            <div class="form-grid">
+              <label>
+                Número a Portar *
+                <input
+                  [(ngModel)]="form.numeroCelular"
+                  name="numeroCelular"
+                  maxlength="10"
+                  pattern="[0-9]{10}"
+                  required
+                  placeholder="2221234567"
+                >
+              </label>
+              <label>
+                NIP (enviado por SMS) *
+                <input [(ngModel)]="form.nipSms" name="nipSms" maxlength="10" required placeholder="Ingresa tu NIP">
+              </label>
+              <label>
+                Número de Contacto Alternativo *
+                <input
+                  [(ngModel)]="form.numeroContacto"
+                  name="numeroContacto"
+                  maxlength="10"
+                  pattern="[0-9]{10}"
+                  required
+                  placeholder="10 dígitos para contactarte"
+                >
+              </label>
+            </div>
+            <p class="tip">Si no tienes NIP, solicítalo marcando *133# desde tu línea actual.</p>
+            <div class="actions between">
+              <button type="button" class="btn-secondary" (click)="goToTab('personal')">
+                <i class="fas fa-arrow-left"></i> Anterior
+              </button>
+              <button type="button" class="btn-next" (click)="goToTab('adicional')">
+                Siguiente <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (currentTab() === 'adicional') {
+          <div class="tab-content">
+            <label>
+              Comentarios o detalles adicionales (opcional)
+              <textarea
+                [(ngModel)]="form.otrosCampos"
+                name="otrosCampos"
+                placeholder="Ej: modalidad actual, operador actual, plan actual..."
+              ></textarea>
+            </label>
+
+            <div class="benefits-box">
+              <h4><i class="fas fa-star"></i> Beneficios de portar a Telcel</h4>
+              <ul>
+                <li>La mejor cobertura en México</li>
+                <li>Proceso gratuito y rápido</li>
+                <li>Conservas tu número actual</li>
+                <li>Planes accesibles y flexibles</li>
+              </ul>
+            </div>
+
+            <div class="actions between">
+              <button type="button" class="btn-secondary" (click)="goToTab('portabilidad')">
+                <i class="fas fa-arrow-left"></i> Anterior
+              </button>
+              <button type="submit" class="btn-submit" [disabled]="loading()">
+                @if (loading()) {
+                  <i class="fas fa-spinner fa-spin"></i> Enviando...
+                } @else {
+                  <i class="fas fa-paper-plane"></i> Solicitar Portabilidad
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </form>
+    </div>
+  </section>
+</main>

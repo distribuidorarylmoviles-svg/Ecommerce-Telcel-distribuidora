@@ -9,6 +9,9 @@ import { Register } from './features/auth/register/register';
 import { Location } from './features/location/location';
 import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/reset-password/reset-password';
+import { Planes } from './features/services/planes/planes';
+import { Portabilidad } from './features/services/portabilidad/portabilidad';
+import { Recuperacion } from './features/services/recuperacion/recuperacion';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -21,6 +24,9 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'registro', component: Register },
   { path: 'ubicacion', component: Location },
+  { path: 'servicios/planes', component: Planes },
+  { path: 'servicios/portabilidad', component: Portabilidad },
+  { path: 'servicios/recuperacion', component: Recuperacion },
   { path: 'recuperar-contrasena', component: ForgotPassword },
   { path: 'restablecer-contrasena', component: ResetPassword },
   { path: '**', redirectTo: 'home' }

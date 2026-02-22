@@ -226,6 +226,114 @@
   }
 }
 
+/* SERVICIOS */
+.services-section {
+  padding: 60px 20px;
+  max-width: 1200px;
+  margin: 20px auto 0;
+  background: linear-gradient(135deg, #0b2d7a 0%, #0033a0 55%, #0a4abf 100%);
+  border-radius: 18px;
+  color: #fff;
+}
+
+.services-header {
+  text-align: center;
+
+  .section-title {
+    color: #fff;
+
+    &::after {
+      background: linear-gradient(90deg, #ff9d3c, #ffc06d);
+    }
+  }
+
+  p {
+    margin-top: 14px;
+    opacity: 0.92;
+    font-size: 16px;
+  }
+}
+
+.services-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.service-card {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 16px;
+  padding: 24px;
+  color: #102a43;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+
+  h3 {
+    margin: 14px 0 10px;
+    color: #0033a0;
+    font-size: 22px;
+  }
+
+  .service-description {
+    margin: 0;
+    color: #334e68;
+    line-height: 1.5;
+    min-height: 72px;
+  }
+}
+
+.service-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0033a0 0%, #0a4abf 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.service-features {
+  list-style: none;
+  margin: 16px 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+
+  li {
+    font-size: 14px;
+    color: #243b53;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  i {
+    color: #16a34a;
+  }
+}
+
+.btn-service {
+  margin-top: auto;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0033a0 0%, #0a4abf 100%);
+  color: #fff;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 51, 160, 0.3);
+  }
+}
+
 /* PRODUCTOS DESTACADOS */
 .products-section {
   padding: 60px 20px;
@@ -285,6 +393,13 @@
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
+  }
+  .services-section {
+    margin-top: 16px;
+    padding: 44px 14px;
+  }
+  .service-card .service-description {
+    min-height: auto;
   }
 }
 

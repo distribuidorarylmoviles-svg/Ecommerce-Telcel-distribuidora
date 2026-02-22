@@ -1,0 +1,73 @@
+<main class="service-form-page">
+  <section class="service-form-wrapper">
+    <div class="image-column">
+      <div class="image-card">
+        <img src="/RYL.png" alt="R y L Moviles">
+      </div>
+    </div>
+
+    <div class="form-column">
+      <header>
+        <h1>Planes de Internet</h1>
+        <p>Ingresa tus datos y un ejecutivo te contactará para ayudarte a elegir el mejor plan.</p>
+      </header>
+
+      @if (error()) {
+        <div class="alert-error">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ error() }}
+        </div>
+      }
+
+      @if (sent()) {
+        <div class="alert-success" [class.warning]="!emailSent()">
+          <i class="fas" [class.fa-check-circle]="emailSent()" [class.fa-exclamation-triangle]="!emailSent()"></i>
+          {{ responseMessage() }}
+        </div>
+      }
+
+      <form #planesForm="ngForm" (ngSubmit)="onSubmit(planesForm)">
+        <div class="form-row">
+          <input
+            [(ngModel)]="form.nombre"
+            name="nombre"
+            type="text"
+            placeholder="Nombre"
+            required
+          >
+          <input
+            [(ngModel)]="form.correoElectronico"
+            name="correoElectronico"
+            type="email"
+            placeholder="Correo electrónico"
+            required
+          >
+        </div>
+
+        <input
+          [(ngModel)]="form.telefonoCelular"
+          name="telefonoCelular"
+          type="tel"
+          placeholder="Número de teléfono"
+          maxlength="10"
+          pattern="[0-9]{10}"
+          required
+        >
+
+        <textarea
+          [(ngModel)]="form.comentario"
+          name="comentario"
+          placeholder="Comentario"
+        ></textarea>
+
+        <button type="submit" [disabled]="planesForm.invalid || loading()">
+          @if (loading()) {
+            <i class="fas fa-spinner fa-spin"></i> Enviando...
+          } @else {
+            <i class="fas fa-paper-plane"></i> Enviar
+          }
+        </button>
+      </form>
+    </div>
+  </section>
+</main>

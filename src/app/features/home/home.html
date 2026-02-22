@@ -52,6 +52,31 @@
   </section>
 }
 
+<section class="services-section">
+  <div class="services-header">
+    <h2 class="section-title">Servicios</h2>
+    <p>Descubre los servicios que tenemos para ti.</p>
+  </div>
+
+  <div class="services-grid">
+    @for (service of services; track service.id) {
+      <article class="service-card">
+        <div class="service-icon">
+          <i [class]="service.icon"></i>
+        </div>
+        <h3>{{ service.title }}</h3>
+        <p class="service-description">{{ service.description }}</p>
+        <ul class="service-features">
+          @for (feature of service.features; track feature) {
+            <li><i class="fas fa-check-circle"></i> {{ feature }}</li>
+          }
+        </ul>
+        <a [routerLink]="service.route" class="btn-service">{{ service.cta }}</a>
+      </article>
+    }
+  </div>
+</section>
+
 @if (featuredProducts().length > 0) {
   <section class="products-section">
     <h2 class="section-title">Productos destacados</h2>

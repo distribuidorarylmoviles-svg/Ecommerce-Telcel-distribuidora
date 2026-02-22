@@ -19,6 +19,38 @@ export class Home implements OnInit, OnDestroy {
   banners = signal<Banner[]>([]);
   featuredProducts = signal<Product[]>([]);
   categories = signal<Category[]>([]);
+  readonly services = [
+    {
+      id: 'planes',
+      icon: 'fas fa-wifi',
+      title: 'Planes de Internet',
+      description:
+        'Encuentra el plan perfecto para ti. Navega con la mejor cobertura y atención personalizada.',
+      features: ['Cobertura nacional', 'Planes flexibles', 'Asesoría personalizada'],
+      cta: 'Ver planes',
+      route: '/servicios/planes',
+    },
+    {
+      id: 'portabilidad',
+      icon: 'fas fa-exchange-alt',
+      title: 'Portabilidad',
+      description:
+        'Cámbiate a Telcel y conserva tu número actual. El proceso es rápido y sin costo.',
+      features: ['Conserva tu número', 'Trámite ágil', 'Acompañamiento en todo el proceso'],
+      cta: 'Solicitar portabilidad',
+      route: '/servicios/portabilidad',
+    },
+    {
+      id: 'recuperacion',
+      icon: 'fas fa-redo-alt',
+      title: 'Recuperación de Número',
+      description:
+        'Si perdiste tu chip o teléfono, te ayudamos a recuperar tu línea con soporte directo.',
+      features: ['Mantén tu número', 'Atención inmediata', 'Soporte con ejecutivo'],
+      cta: 'Recuperar número',
+      route: '/servicios/recuperacion',
+    },
+  ] as const;
 
   currentBannerIndex = signal(0);
   private sliderInterval: any;
