@@ -165,15 +165,35 @@
         </header>
 
         <form class="category-form" (ngSubmit)="saveCategory()">
+          <div class="grid-two">
+            <label>
+              Nombre de categoría *
+              <input
+                type="text"
+                name="categoryName"
+                [(ngModel)]="categoryForm.name"
+                placeholder="Ej. Accesorios"
+                required
+              />
+            </label>
+            <label>
+              URL de imagen
+              <input
+                type="text"
+                name="categoryImageUrl"
+                [(ngModel)]="categoryForm.imageUrl"
+                placeholder="URL de la imagen"
+              />
+            </label>
+          </div>
           <label>
-            Nueva categoría
-            <input
-              type="text"
-              name="categoryName"
-              [(ngModel)]="categoryFormName"
-              placeholder="Ej. Accesorios"
-              required
-            />
+            Descripción
+            <textarea
+              name="categoryDescription"
+              [(ngModel)]="categoryForm.description"
+              placeholder="Breve descripción de la categoría"
+              rows="2"
+            ></textarea>
           </label>
           <button type="submit" class="btn-primary" [disabled]="savingCategory()">
             @if (savingCategory()) {
@@ -189,27 +209,48 @@
         } @else if (categories().length === 0) {
           <div class="empty-state">No hay categorías registradas.</div>
         } @else {
-          <div class="category-list">
-            @for (category of categories(); track category.id) {
-              <article class="category-item">
-                <div>
-                  <strong>{{ category.name }}</strong>
-                  <p>{{ category.createdAt ? (category.createdAt | date:'medium') : 'Sin fecha' }}</p>
-                </div>
-                <button
-                  type="button"
-                  class="btn-inline danger"
-                  [disabled]="deletingCategoryId() === category.id"
-                  (click)="deleteCategory(category)"
-                >
-                  @if (deletingCategoryId() === category.id) {
-                    Eliminando...
-                  } @else {
-                    Eliminar
-                  }
-                </button>
-              </article>
-            }
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Imagen</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (category of categories(); track category.id) {
+                  <tr>
+                    <td>
+                      @if (category.imageUrl) {
+                        <img [src]="category.imageUrl" [alt]="category.name" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                      } @else {
+                        <div style="width: 40px; height: 40px; background: #eee; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                          <i class="fas fa-image" style="color: #ccc;"></i>
+                        </div>
+                      }
+                    </td>
+                    <td><strong>{{ category.name }}</strong></td>
+                    <td>{{ category.description || 'Sin descripción' }}</td>
+                    <td class="actions">
+                      <button
+                        type="button"
+                        class="btn-inline danger"
+                        [disabled]="deletingCategoryId() === category.id"
+                        (click)="deleteCategory(category)"
+                      >
+                        @if (deletingCategoryId() === category.id) {
+                          ...
+                        } @else {
+                          Eliminar
+                        }
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         }
       </article>

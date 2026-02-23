@@ -42,7 +42,7 @@ export class AdminPanel implements OnInit {
 
   editingProductId: string | null = null;
   productForm: AdminProductInput = this.emptyProductForm();
-  categoryFormName = '';
+  categoryForm: AdminCategoryInput = this.emptyCategoryForm();
 
   readonly metrics = computed(() => ({
     products: this.products().length,
@@ -148,7 +148,7 @@ export class AdminPanel implements OnInit {
   }
 
   async saveCategory(): Promise<void> {
-    const name = this.categoryFormName.trim();
+    const name = this.categoryForm.name.trim();
     if (!name) {
       this.errorMessage.set('El nombre de la categoría es obligatorio.');
       return;
@@ -158,9 +158,14 @@ export class AdminPanel implements OnInit {
     this.clearFeedback();
 
     try {
-      await this.adminService.createCategory(name);
+      await this.adminService.createCategory({
+        ...this.categoryForm,
+        name,
+        description: this.categoryForm.description.trim(),
+        imageUrl: this.categoryForm.imageUrl.trim(),
+      });
       this.statusMessage.set('Categoría creada correctamente.');
-      this.categoryFormName = '';
+      this.categoryForm = this.emptyCategoryForm();
       await this.loadCategories();
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo crear la categoría.'));
@@ -354,6 +359,14 @@ export class AdminPanel implements OnInit {
       price: 0,
       category: '',
       stock: 0,
+      imageUrl: '',
+    };
+  }
+
+  private emptyCategoryForm(): AdminCategoryInput {
+    return {
+      name: '',
+      description: '',
       imageUrl: '',
     };
   }

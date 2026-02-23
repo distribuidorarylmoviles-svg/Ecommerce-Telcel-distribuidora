@@ -12,7 +12,15 @@ export interface AdminProduct {
 export interface AdminCategory {
   id: string;
   name: string;
+  description: string;
+  imageUrl: string;
   createdAt: string | null;
+}
+
+export interface AdminCategoryInput {
+  name: string;
+  description: string;
+  imageUrl: string;
 }
 
 export interface AdminProductInput {

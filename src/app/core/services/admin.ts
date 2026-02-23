@@ -61,6 +61,8 @@ type DbProductNameRow = {
 type DbCategoryRow = {
   id: string;
   name: string;
+  description: string | null;
+  image_url: string | null;
   created_at: string | null;
 };
 
@@ -86,7 +88,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, created_at')
+      .select('id, name, description, image_url, created_at')
       .order('name', { ascending: true });
 
     if (error) {
@@ -105,8 +107,8 @@ export class AdminService {
     return (data ?? []).map((row) => this.mapCategory(row as DbCategoryRow));
   }
 
-  async createCategory(rawName: string): Promise<AdminCategory> {
-    const name = rawName.trim();
+  async createCategory(input: AdminCategoryInput): Promise<AdminCategory> {
+    const name = input.name.trim();
     if (!name) {
       throw new Error('El nombre de la categoría es obligatorio.');
     }
@@ -114,8 +116,12 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('categories')
-      .insert({ name })
-      .select('id, name, created_at')
+      .insert({ 
+        name,
+        description: input.description.trim() || null,
+        image_url: input.imageUrl.trim() || null
+      })
+      .select('id, name, description, image_url, created_at')
       .single();
 
     if (error || !data) {
@@ -344,7 +350,7 @@ export class AdminService {
       .single();
 
     if (error || !data) {
-      throw new Error(error?.message || 'No se pudo crear el producto.');
+      throw new Error(error?.message || 'No se pudo crear the product.');
     }
 
     return this.mapProduct(data as DbProductRow);
@@ -388,26 +394,6 @@ export class AdminService {
     };
   }
 
-  private async ensureCategoryExists(category: string | null): Promise<void> {
-    const name = (category ?? '').trim();
-    if (!name) return;
-
-    const supabase = this.supabaseService.getClient();
-    const { error } = await supabase
-      .from('categories')
-      .upsert({ name }, { onConflict: 'name', ignoreDuplicates: true });
-
-    if (!error) return;
-
-    const errorCode = (error as { code?: string }).code;
-    const errorMessage = (error.message ?? '').toLowerCase();
-    const missingTable =
-      errorCode === '42P01' || errorCode === 'PGRST205' || errorMessage.includes('could not find the table');
-    if (missingTable) return;
-
-    throw new Error(error.message || 'No se pudo sincronizar la categoría.');
-  }
-
   private mapProduct(row: DbProductRow): AdminProduct {
     return {
       id: row.id,
@@ -425,6 +411,8 @@ export class AdminService {
     return {
       id: row.id,
       name: row.name,
+      description: row.description ?? '',
+      imageUrl: row.image_url ?? '',
       createdAt: row.created_at,
     };
   }

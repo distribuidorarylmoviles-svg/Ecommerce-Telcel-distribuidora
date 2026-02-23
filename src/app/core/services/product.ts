@@ -67,41 +67,40 @@ export class ProductService {
     categoria?: string;
   }): Promise<ProductListResponse> {
     const supabase = this.supabaseService.getClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
-      .select('id, name, description, price, category, image_url, stock, created_at')
-      .order('created_at', { ascending: false });
+      .select('id, name, description, price, category, image_url, stock, created_at', { count: 'exact' });
+
+    const search = params.buscar?.trim() ?? '';
+    const category = params.categoria?.trim() ?? '';
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(
+        ((params.pagina ?? 1) - 1) * ProductService.PAGE_SIZE,
+        (params.pagina ?? 1) * ProductService.PAGE_SIZE - 1
+      );
 
     if (error) {
       throw new Error(error.message || 'No se pudieron cargar los productos.');
     }
 
-    let rows = (data ?? []) as DbProductRow[];
-    const search = params.buscar?.trim().toLowerCase() ?? '';
-    const category = params.categoria?.trim().toLowerCase() ?? '';
-
-    if (category) {
-      rows = rows.filter((row) => (row.category ?? '').trim().toLowerCase() === category);
-    }
-
-    if (search) {
-      rows = rows.filter((row) => {
-        const name = row.name?.toLowerCase() ?? '';
-        const description = row.description?.toLowerCase() ?? '';
-        return name.includes(search) || description.includes(search);
-      });
-    }
-
-    const total = rows.length;
+    const rows = (data ?? []) as DbProductRow[];
+    const total = count ?? rows.length;
     const totalPages = Math.max(1, Math.ceil(total / ProductService.PAGE_SIZE));
-    const requestedPage = Math.max(1, Math.floor(params.pagina ?? 1));
-    const currentPage = Math.min(requestedPage, totalPages);
-    const startIndex = (currentPage - 1) * ProductService.PAGE_SIZE;
-    const pagedRows = rows.slice(startIndex, startIndex + ProductService.PAGE_SIZE);
+    const currentPage = params.pagina ?? 1;
 
     return {
       success: true,
-      productos: pagedRows.map((row) => this.mapProduct(row)),
+      productos: rows.map((row) => this.mapProduct(row)),
       total,
       pagina_actual: currentPage,
       total_paginas: totalPages,
