@@ -20,8 +20,9 @@ type ServiceRequestRow = {
 const validServiceTypes = new Set(['planes', 'portabilidad', 'recuperacion']);
 const defaultDestinationEmail = 'rodriguezlopezfernando26@gmail.com';
 
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value: string | null | undefined): string {
+  if (!value) return '';
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -29,7 +30,8 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function isValidEmail(value: string): boolean {
+function isValidEmail(value: string | null | undefined): boolean {
+  if (!value) return false;
   const normalized = value.trim();
   if (!normalized) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
@@ -56,6 +58,7 @@ function serviceLabel(serviceType: ServiceRequestRow['service_type']): string {
 }
 
 Deno.serve(async (req) => {
+  // Manejo de CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -67,8 +70,9 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!resendApiKey || !supabaseUrl || !serviceRoleKey) {
+      console.error('Faltan variables de entorno.');
       return new Response(
-        JSON.stringify({ error: 'Missing RESEND_API_KEY or Supabase service env vars.' }),
+        JSON.stringify({ error: 'Configuración incompleta en el servidor.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -88,7 +92,7 @@ Deno.serve(async (req) => {
 
       if (fetchError || !existingRow) {
         return new Response(
-          JSON.stringify({ error: fetchError?.message ?? 'Request not found.' }),
+          JSON.stringify({ error: fetchError?.message ?? 'Solicitud no encontrada.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -96,36 +100,22 @@ Deno.serve(async (req) => {
     } else {
       const serviceType = String(body.service_type ?? '').trim();
       const nombre = String(body.nombre ?? '').trim();
-      const correoElectronicoRaw =
-        typeof body.correo_electronico === 'string' && body.correo_electronico.trim()
-          ? body.correo_electronico.trim().toLowerCase()
-          : null;
-      const correoElectronico =
-        correoElectronicoRaw && isValidEmail(correoElectronicoRaw) ? correoElectronicoRaw : null;
-      const telefonoCelular =
-        typeof body.telefono_celular === 'string' && body.telefono_celular.trim()
-          ? body.telefono_celular.trim()
-          : null;
-      const comentario =
-        typeof body.comentario === 'string' && body.comentario.trim() ? body.comentario.trim() : null;
-      const payload =
-        typeof body.payload === 'object' && body.payload !== null
-          ? (body.payload as Record<string, unknown>)
-          : {};
+      const correoRaw = typeof body.correo_electronico === 'string' ? body.correo_electronico.trim().toLowerCase() : null;
+      const correoElectronico = isValidEmail(correoRaw) ? correoRaw : null;
+      const telefonoCelular = typeof body.telefono_celular === 'string' ? body.telefono_celular.trim() : null;
+      const comentario = typeof body.comentario === 'string' ? body.comentario.trim() : null;
+      const payload = typeof body.payload === 'object' && body.payload !== null ? (body.payload as Record<string, unknown>) : {};
       const userId = typeof body.user_id === 'string' && body.user_id.trim() ? body.user_id.trim() : null;
-      const destinationEmailFromBody =
-        typeof body.destination_email === 'string' && body.destination_email.trim()
-          ? body.destination_email.trim()
-          : null;
+      const destinationEmailFromBody = typeof body.destination_email === 'string' && body.destination_email.trim() ? body.destination_email.trim() : null;
 
       if (!validServiceTypes.has(serviceType)) {
-        return new Response(JSON.stringify({ error: 'service_type inválido.' }), {
+        return new Response(JSON.stringify({ error: 'Tipo de servicio inválido.' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (!nombre) {
-        return new Response(JSON.stringify({ error: 'nombre es obligatorio.' }), {
+        return new Response(JSON.stringify({ error: 'El nombre es obligatorio.' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -147,7 +137,7 @@ Deno.serve(async (req) => {
         .single<ServiceRequestRow>();
 
       if (insertError || !insertedRow) {
-        return new Response(JSON.stringify({ error: insertError?.message ?? 'No se pudo insertar solicitud.' }), {
+        return new Response(JSON.stringify({ error: insertError?.message ?? 'No se pudo registrar la solicitud.' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -159,18 +149,16 @@ Deno.serve(async (req) => {
     const destination = isValidEmail(destinationCandidate) ? destinationCandidate : defaultDestinationEmail;
     const subject = `Nueva solicitud de servicio: ${serviceLabel(requestRow.service_type)}`;
     
-    // Ensure replyTo is ONLY the email address to avoid Resend validation errors
-    const replyTo = requestRow.correo_electronico && isValidEmail(requestRow.correo_electronico)
-      ? requestRow.correo_electronico.trim()
-      : undefined;
+    // reply_to debe ser solo el correo para evitar errores de validación en Resend
+    const replyTo = isValidEmail(requestRow.correo_electronico) ? requestRow.correo_electronico!.trim() : undefined;
 
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.5;color:#102a43;">
         <h2 style="margin:0 0 10px;color:#0033a0;">Nueva solicitud de servicio</h2>
         <p><strong>Servicio:</strong> ${escapeHtml(serviceLabel(requestRow.service_type))}</p>
         <p><strong>Nombre:</strong> ${escapeHtml(requestRow.nombre)}</p>
-        <p><strong>Correo:</strong> ${escapeHtml(requestRow.correo_electronico ?? 'No capturado')}</p>
-        <p><strong>Teléfono:</strong> ${escapeHtml(requestRow.telefono_celular ?? 'No capturado')}</p>
+        <p><strong>Correo:</strong> ${escapeHtml(requestRow.correo_electronico ?? 'No proporcionado')}</p>
+        <p><strong>Teléfono:</strong> ${escapeHtml(requestRow.telefono_celular ?? 'No proporcionado')}</p>
         <p><strong>Comentario:</strong> ${escapeHtml(requestRow.comentario ?? 'Sin comentario')}</p>
         <p><strong>Fecha:</strong> ${escapeHtml(requestRow.created_at)}</p>
         <h3 style="margin:18px 0 8px;color:#0033a0;">Detalles adicionales</h3>
@@ -181,20 +169,21 @@ Deno.serve(async (req) => {
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${resendApiKey}`,
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         from: fromEmail,
         to: [destination],
+        reply_to: replyTo,
         subject,
         html,
-        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     });
 
     const resendBody = await resendResponse.text();
     if (!resendResponse.ok) {
+      console.error('Error de Resend:', resendBody);
       await supabase
         .from('service_requests')
         .update({ email_sent: false, email_error: resendBody })
@@ -216,7 +205,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: String(error) }), {
+    console.error('Error interno:', error);
+    return new Response(JSON.stringify({ error: 'Error interno del servidor.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
