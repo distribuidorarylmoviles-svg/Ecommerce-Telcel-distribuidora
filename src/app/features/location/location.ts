@@ -6,8 +6,4 @@ import { Component } from '@angular/core';
   templateUrl: './location.html',
   styleUrls: ['./location.scss']
 })
-export class Location {
-  // Keep coordinates available if needed elsewhere
-  lat = 17.545;
-  lon = -99.364;
-}
+export class Location {}

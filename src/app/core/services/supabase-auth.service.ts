@@ -60,23 +60,6 @@ export class SupabaseAuthService {
     return this.supabase.auth.resetPasswordForEmail(email, { redirectTo });
   }
 
-  // Envía OTP SMS al teléfono del usuario para recuperar contraseña
-  async sendPasswordResetCodeByPhone(phone: string) {
-    return this.supabase.auth.signInWithOtp({
-      phone,
-      options: { shouldCreateUser: false },
-    });
-  }
-
-  // Valida OTP SMS y abre sesión temporal para cambiar contraseña
-  async verifyPhoneOtp(phone: string, token: string) {
-    return this.supabase.auth.verifyOtp({
-      phone,
-      token,
-      type: 'sms',
-    });
-  }
-
   // Actualiza contraseña del usuario autenticado
   async updatePassword(password: string) {
     return this.supabase.auth.updateUser({ password });

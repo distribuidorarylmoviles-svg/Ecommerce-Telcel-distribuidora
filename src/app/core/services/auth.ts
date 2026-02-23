@@ -10,7 +10,6 @@ import { User, LoginRequest, RegisterRequest, AuthResponse } from '../models/use
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private currentUser = signal<User | null>(null);
-  private permissions = signal<string[]>([]);
   private loading = signal(false);
 
   readonly user = this.currentUser.asReadonly();
@@ -58,7 +57,6 @@ export class AuthService {
 
         const user = this.mapSupabaseUser(data.user);
         this.currentUser.set(user);
-        this.permissions.set([]);
         this.syncPhoneFromMetadata(data.user);
 
         return {
@@ -145,7 +143,6 @@ export class AuthService {
 
   logout(): void {
     this.currentUser.set(null);
-    this.permissions.set([]);
     void this.supabaseAuth.logout().finally(() => {
       this.router.navigate(['/login']);
     });
@@ -156,17 +153,11 @@ export class AuthService {
       next: (session) => {
         if (!session?.user) {
           this.currentUser.set(null);
-          this.permissions.set([]);
-          return;
+            return;
         }
         this.currentUser.set(this.mapSupabaseUser(session.user));
-        this.permissions.set([]);
       },
     });
-  }
-
-  hasPermission(permiso: string): boolean {
-    return this.permissions().includes(permiso);
   }
 
   private async registerWithProfile(data: RegisterRequest): Promise<AuthResponse> {
@@ -237,7 +228,6 @@ export class AuthService {
     const user = signUpData.user ? this.mapSupabaseUser(signUpData.user) : undefined;
     if (user) {
       this.currentUser.set(user);
-      this.permissions.set([]);
     }
 
     return {

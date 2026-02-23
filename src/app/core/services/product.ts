@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
-import { ApiService } from './api';
 import { Product, ProductListResponse } from '../models/product';
 import { Category } from '../models/category';
-import { Banner, ServiceItem } from '../models/banner';
+import { Banner } from '../models/banner';
 import { MOCK_BANNERS } from './mock-data';
 import { SupabaseService } from './supabase.service';
 
@@ -26,18 +25,11 @@ type DbCategoryRow = {
   created_at: string | null;
 };
 
-type DbCategoryFromProductsRow = {
-  category: string | null;
-};
-
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private static readonly PAGE_SIZE = 24;
 
-  constructor(
-    private api: ApiService,
-    private supabaseService: SupabaseService,
-  ) {}
+  constructor(private supabaseService: SupabaseService) {}
 
   getProducts(params: {
     pagina?: number;
@@ -57,10 +49,6 @@ export class ProductService {
 
   getBanners(): Observable<{ success: boolean; banners: Banner[] }> {
     return of({ success: true, banners: MOCK_BANNERS });
-  }
-
-  getServices(): Observable<{ success: boolean; servicios: ServiceItem[] }> {
-    return this.api.get<{ success: boolean; servicios: ServiceItem[] }>('servicios_publicos.php');
   }
 
   private async getProductsFromSupabase(params: {

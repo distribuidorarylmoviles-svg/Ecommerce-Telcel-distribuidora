@@ -17,7 +17,6 @@ export class ProductList implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  products: Product[] = [];
   displayedProducts: Product[] = [];
   categories: Category[] = [];
   searchTerm = '';
@@ -59,7 +58,6 @@ export class ProductList implements OnInit {
       next: (res) => {
         this.loading = false;
         if (res.success) {
-          this.products = res.productos;
           this.displayedProducts = res.productos;
           this.totalPages = res.total_paginas;
           this.totalProducts = res.total;
@@ -100,10 +98,6 @@ export class ProductList implements OnInit {
 
   get pages(): number[] {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
-  }
-
-  get filteredProductCount(): number {
-    return this.displayedProducts.length;
   }
 
   private async updateRouteState(): Promise<void> {

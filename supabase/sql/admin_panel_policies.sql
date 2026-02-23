@@ -126,3 +126,4 @@ select distinct trim(category) as name
 from public.products
 where category is not null and trim(category) <> ''
 on conflict (name) do nothing;
+

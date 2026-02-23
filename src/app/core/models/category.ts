@@ -6,9 +6,3 @@ export interface Category {
   imageUrl?: string;
   image_url?: string;
 }
-
-export interface Subcategory {
-  id_subcategoria: string | number;
-  id_categoria: string | number;
-  nombre: string;
-}
