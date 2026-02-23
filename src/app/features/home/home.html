@@ -52,6 +52,22 @@
   </section>
 }
 
+@if (featuredProducts().length > 0) {
+  <section class="products-section">
+    <h2 class="section-title">Productos destacados</h2>
+    <div class="products-grid">
+      @for (product of featuredProducts(); track product.id_producto) {
+        <app-product-card [product]="product" />
+      }
+    </div>
+    <div class="section-cta">
+      <a routerLink="/tienda" class="btn-see-all">
+        <i class="fas fa-store"></i> Ver todos los productos
+      </a>
+    </div>
+  </section>
+}
+
 <section class="services-section">
   <div class="services-header">
     <h2 class="section-title">Servicios</h2>
@@ -76,19 +92,3 @@
     }
   </div>
 </section>
-
-@if (featuredProducts().length > 0) {
-  <section class="products-section">
-    <h2 class="section-title">Productos destacados</h2>
-    <div class="products-grid">
-      @for (product of featuredProducts(); track product.id_producto) {
-        <app-product-card [product]="product" />
-      }
-    </div>
-    <div class="section-cta">
-      <a routerLink="/tienda" class="btn-see-all">
-        <i class="fas fa-store"></i> Ver todos los productos
-      </a>
-    </div>
-  </section>
-}

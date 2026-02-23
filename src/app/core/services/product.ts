@@ -134,52 +134,27 @@ export class ProductService {
       .select('id, name, created_at')
       .order('name', { ascending: true });
 
-    if (!categoriesError) {
-      const categorias: Category[] = ((categoriesData ?? []) as DbCategoryRow[]).map((row) => ({
-        id_categoria: row.id,
-        nombre: row.name,
-        descripcion: '',
-        imagen: '',
-      }));
-      return { success: true, categorias };
-    }
-
-    const categoriesErrorCode = (categoriesError as { code?: string }).code;
-    const categoriesErrorMessage = (categoriesError.message ?? '').toLowerCase();
-    const missingCategoriesTable =
-      categoriesErrorCode === '42P01' ||
-      categoriesErrorCode === 'PGRST205' ||
-      categoriesErrorMessage.includes('could not find the table');
-    if (!missingCategoriesTable) {
+    if (categoriesError) {
+      const categoriesErrorCode = (categoriesError as { code?: string }).code;
+      const categoriesErrorMessage = (categoriesError.message ?? '').toLowerCase();
+      const missingCategoriesTable =
+        categoriesErrorCode === '42P01' ||
+        categoriesErrorCode === 'PGRST205' ||
+        categoriesErrorMessage.includes('could not find the table');
+      
+      if (missingCategoriesTable) {
+        return { success: true, categorias: [] };
+      }
       throw new Error(categoriesError.message || 'No se pudieron cargar las categorías.');
     }
 
-    const { data: productsData, error: productsError } = await supabase
-      .from('products')
-      .select('category')
-      .order('category', { ascending: true });
-
-    if (productsError) {
-      throw new Error(productsError.message || 'No se pudieron cargar las categorías.');
-    }
-
-    const categoryNames = Array.from(
-      new Set(
-        ((productsData ?? []) as DbCategoryFromProductsRow[])
-          .map((row) => (row.category ?? '').trim())
-          .filter((name) => !!name),
-      ),
-    );
-
-    categoryNames.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-
-    const categorias: Category[] = categoryNames.map((name, index) => ({
-      id_categoria: index + 1,
-      nombre: name,
+    const categorias: Category[] = ((categoriesData ?? []) as DbCategoryRow[]).map((row) => ({
+      id_categoria: row.id,
+      nombre: row.name,
       descripcion: '',
       imagen: '',
     }));
-
+    
     return { success: true, categorias };
   }
 

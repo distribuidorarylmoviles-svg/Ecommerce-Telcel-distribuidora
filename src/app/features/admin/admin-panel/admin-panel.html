@@ -65,14 +65,13 @@
 
           <label>
             Categoría
-            <input type="text" name="category" [(ngModel)]="productForm.category" list="categories-list" />
+            <select name="category" [(ngModel)]="productForm.category">
+              <option value="">Sin categoría</option>
+              @for (category of categories(); track category.id) {
+                <option [value]="category.name">{{ category.name }}</option>
+              }
+            </select>
           </label>
-
-          <datalist id="categories-list">
-            @for (category of categories(); track category.id) {
-              <option [value]="category.name"></option>
-            }
-          </datalist>
 
           <label>
             Descripción
@@ -156,8 +155,13 @@
   @if (activeTab() === 'categorias') {
     <section class="card-list">
       <article class="content-card">
-        <header>
+        <header style="display: flex; justify-content: space-between; align-items: center;">
           <h3>Categorías de productos</h3>
+          @if (categories().length > 0) {
+            <button type="button" class="btn-inline danger" (click)="deleteAllCategories()" [disabled]="categoriesLoading()">
+              <i class="fas fa-trash-sweep"></i> Borrar todas las categorías
+            </button>
+          }
         </header>
 
         <form class="category-form" (ngSubmit)="saveCategory()">

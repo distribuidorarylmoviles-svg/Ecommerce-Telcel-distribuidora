@@ -140,15 +140,18 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   border: 1px solid #c8d4ef;
   border-radius: 10px;
   padding: 10px;
   font-size: 14px;
+  background-color: white;
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: #0033a0;
   box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.14);

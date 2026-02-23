@@ -60,7 +60,7 @@ export class Home implements OnInit, OnDestroy {
       this.banners.set(res.banners);
       this.startSlider();
     });
-    this.productService.getProducts({ pagina: 1 }).subscribe(res => this.featuredProducts.set(res.productos.slice(0, 8)));
+    this.productService.getProducts({ pagina: 1 }).subscribe(res => this.featuredProducts.set(res.productos.slice(0, 20)));
     this.productService.getCategories().subscribe(res => this.categories.set(res.categorias));
   }
 

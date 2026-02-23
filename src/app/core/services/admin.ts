@@ -161,6 +161,31 @@ export class AdminService {
     }
   }
 
+  async deleteAllCategories(): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+
+    // 1. Desvincular todos los productos de sus categorías
+    const { error: clearError } = await supabase
+      .from('products')
+      .update({ category: null })
+      .neq('category', ''); // O simplemente no filtrar para limpiar todos
+
+    if (clearError) {
+      throw new Error(clearError.message || 'No se pudieron desvincular los productos.');
+    }
+
+    // 2. Eliminar todas las categorías
+    // Usamos un filtro que siempre sea verdadero (como id no es nulo) para permitir el delete masivo si no hay políticas que lo impidan
+    const { error: deleteError } = await supabase
+      .from('categories')
+      .delete()
+      .neq('name', ''); 
+
+    if (deleteError) {
+      throw new Error(deleteError.message || 'No se pudieron eliminar las categorías.');
+    }
+  }
+
   async saveProduct(input: AdminProductInput, id?: string): Promise<AdminProduct> {
     if (id) {
       return this.updateProduct(id, input);
@@ -311,8 +336,6 @@ export class AdminService {
   private async insertProduct(input: AdminProductInput): Promise<AdminProduct> {
     const supabase = this.supabaseService.getClient();
     const payload = this.toProductPayload(input);
-    const category = payload['category'];
-    await this.ensureCategoryExists(typeof category === 'string' ? category : null);
 
     const { data, error } = await supabase
       .from('products')
@@ -330,8 +353,6 @@ export class AdminService {
   private async updateProduct(id: string, input: AdminProductInput): Promise<AdminProduct> {
     const supabase = this.supabaseService.getClient();
     const payload = this.toProductPayload(input);
-    const category = payload['category'];
-    await this.ensureCategoryExists(typeof category === 'string' ? category : null);
 
     const { data, error } = await supabase
       .from('products')

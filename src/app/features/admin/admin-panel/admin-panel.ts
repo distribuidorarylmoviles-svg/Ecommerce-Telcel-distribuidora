@@ -161,7 +161,7 @@ export class AdminPanel implements OnInit {
       await this.adminService.createCategory(name);
       this.statusMessage.set('Categoría creada correctamente.');
       this.categoryFormName = '';
-      await Promise.all([this.loadCategories(), this.loadProducts()]);
+      await this.loadCategories();
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo crear la categoría.'));
     } finally {
@@ -193,6 +193,31 @@ export class AdminPanel implements OnInit {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
     } finally {
       this.deletingCategoryId.set(null);
+    }
+  }
+
+  async deleteAllCategories(): Promise<void> {
+    const accepted =
+      typeof window !== 'undefined'
+        ? window.confirm(
+            '¿ELIMINAR TODAS LAS CATEGORÍAS? Esta acción desvinculará todos los productos y no se puede deshacer.',
+          )
+        : false;
+
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.categoriesLoading.set(true);
+
+    try {
+      await this.adminService.deleteAllCategories();
+      this.statusMessage.set('Todas las categorías han sido eliminadas.');
+      this.productForm = { ...this.productForm, category: '' };
+      await Promise.all([this.loadCategories(), this.loadProducts()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron eliminar todas las categorías.'));
+    } finally {
+      this.categoriesLoading.set(false);
     }
   }
 
