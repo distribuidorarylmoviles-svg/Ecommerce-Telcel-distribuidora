@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product';
@@ -16,6 +17,7 @@ export class ProductList implements OnInit {
   private productService = inject(ProductService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
 
   displayedProducts: Product[] = [];
   categories: Category[] = [];
@@ -61,7 +63,9 @@ export class ProductList implements OnInit {
           this.displayedProducts = res.productos;
           this.totalPages = res.total_paginas;
           this.totalProducts = res.total;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (isPlatformBrowser(this.platformId)) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }
       },
       error: () => this.loading = false
