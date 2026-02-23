@@ -21,6 +21,8 @@ type DbProductRow = {
 type DbCategoryRow = {
   id: string;
   name: string;
+  description: string | null;
+  image_url: string | null;
   created_at: string | null;
 };
 
@@ -130,7 +132,7 @@ export class ProductService {
     const supabase = this.supabaseService.getClient();
     const { data: categoriesData, error: categoriesError } = await supabase
       .from('categories')
-      .select('id, name, created_at')
+      .select('id, name, description, image_url, created_at')
       .order('name', { ascending: true });
 
     if (categoriesError) {
@@ -150,8 +152,9 @@ export class ProductService {
     const categorias: Category[] = ((categoriesData ?? []) as DbCategoryRow[]).map((row) => ({
       id_categoria: row.id,
       nombre: row.name,
-      descripcion: '',
+      descripcion: row.description ?? '',
       imagen: '',
+      image_url: row.image_url ?? '',
     }));
     
     return { success: true, categorias };

@@ -3,6 +3,8 @@ export interface Category {
   nombre: string;
   descripcion: string;
   imagen: string;
+  imageUrl?: string;
+  image_url?: string;
 }
 
 export interface Subcategory {

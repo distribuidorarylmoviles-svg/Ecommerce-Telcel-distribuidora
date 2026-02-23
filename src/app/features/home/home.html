@@ -42,8 +42,8 @@
     <div class="categories-grid">
       @for (cat of categories(); track cat.id_categoria) {
         <a routerLink="/tienda" [queryParams]="{categoria: cat.nombre}" class="category-card">
-          @if (cat.imagen || (cat as any).imageUrl || (cat as any).image_url) {
-            <img [src]="cat.imagen ? ('/categoriasImg/' + cat.imagen) : ((cat as any).imageUrl || (cat as any).image_url)" [alt]="cat.nombre" class="category-img">
+          @if (cat.imagen || cat.imageUrl || cat.image_url) {
+            <img [src]="cat.imagen ? ('/categoriasImg/' + cat.imagen) : (cat.imageUrl || cat.image_url)" [alt]="cat.nombre" class="category-img">
           }
           <span>{{ cat.nombre }}</span>
         </a>

@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AdminCategory,
+  AdminCategoryInput,
   AdminOrder,
   AdminProduct,
   AdminProductInput,
