@@ -5,20 +5,23 @@
 
     <div class="filter-section">
       <h4><i class="fas fa-search"></i> Buscar</h4>
-      <div class="search-input">
+      <div class="search-input-wrapper">
         <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="onSearch()" placeholder="Buscar productos...">
+        <button class="btn-search-trigger" (click)="onSearch()" aria-label="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
       </div>
     </div>
 
     <div class="filter-section">
       <h4><i class="fas fa-tags"></i> Categorías</h4>
       <div class="filter-options">
-        <div class="filter-option" (click)="filterByCategory(null)">
+        <div class="filter-option" [class.active]="selectedCategory === null" (click)="filterByCategory(null)">
           <input type="checkbox" [checked]="selectedCategory === null" id="cat-all">
           <label for="cat-all">Todos</label>
         </div>
         @for (cat of categories; track cat.id_categoria) {
-          <div class="filter-option" (click)="filterByCategory(cat.nombre)">
+          <div class="filter-option" [class.active]="selectedCategory === cat.nombre" (click)="filterByCategory(cat.nombre)">
             <input type="checkbox" [checked]="selectedCategory === cat.nombre" [id]="'cat-' + cat.id_categoria">
             <label [for]="'cat-' + cat.id_categoria">{{ cat.nombre }}</label>
           </div>
@@ -36,7 +39,7 @@
     <div class="products-header">
       <div class="header-title-section">
         <h2><i class="fas fa-box-open"></i> Productos</h2>
-        <span class="product-count">{{ displayedProducts.length }} productos encontrados</span>
+        <span class="product-count">{{ totalProducts }} productos encontrados</span>
       </div>
     </div>
 

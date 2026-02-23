@@ -17,18 +17,28 @@ export class ProductCard {
   private router = inject(Router);
 
   get imageUrl(): string {
-    const img = this.product().imagen_principal;
-    if (!img) return 'no-image.png';
+    let img = this.product().imagen_principal;
+    if (!img) return '/no-image.png';
     if (img.startsWith('http')) return img;
+    if (img.startsWith('../')) return '/' + img.substring(3);
     return '/productosImg/' + img;
   }
 
   addToCart(event: Event): void {
     event.stopPropagation();
     const p = this.product();
-    const img = p.imagen_principal
-      ? (p.imagen_principal.startsWith('http') ? p.imagen_principal : '/productosImg/' + p.imagen_principal)
-      : '';
+    let img = p.imagen_principal || '';
+    if (img) {
+      if (img.startsWith('http')) {
+        // img is already full URL
+      } else if (img.startsWith('../')) {
+        img = '/' + img.substring(3);
+      } else {
+        img = '/productosImg/' + img;
+      }
+    } else {
+      img = '/no-image.png';
+    }
     this.cart.addItem({ id_producto: p.id_producto, nombre: p.nombre, precio: p.precio, cantidad: 1, imagen: img, stock: p.stock });
   }
 

@@ -24,6 +24,7 @@ export class ProductList implements OnInit {
   selectedCategory: string | null = null;
   currentPage = 1;
   totalPages = 1;
+  totalProducts = 0;
   loading = false;
 
   ngOnInit(): void {
@@ -61,6 +62,8 @@ export class ProductList implements OnInit {
           this.products = res.productos;
           this.displayedProducts = res.productos;
           this.totalPages = res.total_paginas;
+          this.totalProducts = res.total;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
       error: () => this.loading = false
@@ -73,7 +76,11 @@ export class ProductList implements OnInit {
   }
 
   filterByCategory(category: string | null): void {
-    this.selectedCategory = category;
+    if (this.selectedCategory === category) {
+      this.selectedCategory = null;
+    } else {
+      this.selectedCategory = category;
+    }
     this.currentPage = 1;
     void this.updateRouteState();
   }

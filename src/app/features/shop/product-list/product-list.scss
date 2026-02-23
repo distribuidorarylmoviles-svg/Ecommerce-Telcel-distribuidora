@@ -51,9 +51,12 @@
   }
 }
 
-.search-input {
+.search-input-wrapper {
+  display: flex;
+  gap: 8px;
+
   input {
-    width: 100%;
+    flex: 1;
     padding: 10px 12px;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -68,6 +71,22 @@
   }
 }
 
+.btn-search-trigger {
+  background: #0033A0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s;
+
+  &:hover { background: #001A4D; }
+}
+
 .filter-options {
   display: flex;
   flex-direction: column;
@@ -79,10 +98,14 @@
   align-items: center;
   padding: 8px 10px;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s;
   cursor: pointer;
 
   &:hover { background: #f8f9fa; }
+  &.active {
+    background: #eef2ff;
+    label { color: #0033A0; font-weight: 600; }
+  }
 
   input[type="checkbox"] {
     width: 18px;

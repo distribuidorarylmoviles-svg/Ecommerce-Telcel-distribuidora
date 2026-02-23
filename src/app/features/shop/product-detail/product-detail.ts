@@ -24,8 +24,9 @@ export class ProductDetail implements OnInit {
   addedToCart = false;
 
   toImgUrl(filename: string): string {
-    if (!filename) return 'no-image.png';
+    if (!filename) return '/no-image.png';
     if (filename.startsWith('http')) return filename;
+    if (filename.startsWith('../')) return '/' + filename.substring(3);
     return '/productosImg/' + filename;
   }
 
