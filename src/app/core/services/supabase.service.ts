@@ -23,14 +23,9 @@ export class SupabaseService {
       console.warn('Supabase env incompleto en build/runtime. Usando fallback interno.');
     }
 
-    this.supabase = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      },
-    });
+    // No forzar Authorization global con la anon key.
+    // Supabase JS inyecta automáticamente el access_token del usuario autenticado.
+    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
   getClient(): SupabaseClient {

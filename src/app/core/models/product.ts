@@ -1,5 +1,5 @@
 export interface Product {
-  id_producto: number;
+  id_producto: string | number;
   nombre: string;
   marca: string;
   color: string;
@@ -17,7 +17,7 @@ export interface Product {
 
 export interface ProductImage {
   id_imagen: number;
-  id_producto: number;
+  id_producto: string | number;
   url_imagen: string;
   principal: boolean;
 }

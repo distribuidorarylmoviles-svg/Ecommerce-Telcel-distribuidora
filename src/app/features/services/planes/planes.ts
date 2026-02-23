@@ -16,7 +16,6 @@ export class Planes {
   loading = signal(false);
   error = signal('');
   responseMessage = signal('');
-  emailSent = signal(true);
 
   form = {
     nombre: '',
@@ -42,7 +41,6 @@ export class Planes {
       next: (response) => {
         this.loading.set(false);
         this.sent.set(true);
-        this.emailSent.set(response.emailSent);
         this.responseMessage.set(response.message);
         formRef.resetForm();
       },

@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product';
 import { ProductCard } from '../../../shared/components/product-card/product-card';
@@ -15,12 +15,13 @@ import { Category } from '../../../core/models/category';
 export class ProductList implements OnInit {
   private productService = inject(ProductService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   products: Product[] = [];
   displayedProducts: Product[] = [];
   categories: Category[] = [];
   searchTerm = '';
-  selectedCategory: number | null = null;
+  selectedCategory: string | null = null;
   currentPage = 1;
   totalPages = 1;
   loading = false;
@@ -31,12 +32,18 @@ export class ProductList implements OnInit {
     });
 
     this.route.queryParams.subscribe(params => {
-      if (params['categoria']) {
-        this.selectedCategory = +params['categoria'];
-      }
-      if (params['buscar']) {
-        this.searchTerm = params['buscar'];
-      }
+      this.selectedCategory =
+        typeof params['categoria'] === 'string' && params['categoria'].trim()
+          ? params['categoria'].trim()
+          : null;
+      this.searchTerm =
+        typeof params['buscar'] === 'string' && params['buscar'].trim()
+          ? params['buscar'].trim()
+          : '';
+      this.currentPage =
+        typeof params['pagina'] === 'string' && Number(params['pagina']) > 0
+          ? Math.floor(Number(params['pagina']))
+          : 1;
       this.loadProducts();
     });
   }
@@ -45,55 +52,43 @@ export class ProductList implements OnInit {
     this.loading = true;
     this.productService.getProducts({
       pagina: this.currentPage,
-      categoria: this.selectedCategory || undefined
+      buscar: this.searchTerm || undefined,
+      categoria: this.selectedCategory || undefined,
     }).subscribe({
       next: (res) => {
         this.loading = false;
         if (res.success) {
           this.products = res.productos;
+          this.displayedProducts = res.productos;
           this.totalPages = res.total_paginas;
-          this.applySearchFilter();
         }
       },
       error: () => this.loading = false
     });
   }
 
-  // Filtro de búsqueda flexible (case-insensitive, búsqueda parcial)
-  private applySearchFilter(): void {
-    if (!this.searchTerm.trim()) {
-      this.displayedProducts = this.products;
-    } else {
-      const searchLower = this.searchTerm.toLowerCase();
-      this.displayedProducts = this.products.filter(product =>
-        product.nombre.toLowerCase().includes(searchLower) ||
-        (product.descripcion && product.descripcion.toLowerCase().includes(searchLower))
-      );
-    }
-  }
-
   onSearch(): void {
     this.currentPage = 1;
-    this.loadProducts();
+    void this.updateRouteState();
   }
 
-  filterByCategory(catId: number | null): void {
-    this.selectedCategory = catId;
+  filterByCategory(category: string | null): void {
+    this.selectedCategory = category;
     this.currentPage = 1;
-    this.loadProducts();
+    void this.updateRouteState();
   }
 
   resetFilters(): void {
     this.searchTerm = '';
     this.selectedCategory = null;
     this.currentPage = 1;
-    this.loadProducts();
+    void this.updateRouteState();
   }
 
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.loadProducts();
+    void this.updateRouteState();
   }
 
   get pages(): number[] {
@@ -102,5 +97,17 @@ export class ProductList implements OnInit {
 
   get filteredProductCount(): number {
     return this.displayedProducts.length;
+  }
+
+  private async updateRouteState(): Promise<void> {
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        buscar: this.searchTerm.trim() || null,
+        categoria: this.selectedCategory || null,
+        pagina: this.currentPage > 1 ? this.currentPage : null,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 }

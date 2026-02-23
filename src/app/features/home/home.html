@@ -41,7 +41,7 @@
     <h2 class="section-title">Categorías</h2>
     <div class="categories-grid">
       @for (cat of categories(); track cat.id_categoria) {
-        <a routerLink="/tienda" [queryParams]="{categoria: cat.id_categoria}" class="category-card">
+        <a routerLink="/tienda" [queryParams]="{categoria: cat.nombre}" class="category-card">
           @if (cat.imagen) {
             <img [src]="'/categoriasImg/' + cat.imagen" [alt]="cat.nombre" class="category-img">
           }

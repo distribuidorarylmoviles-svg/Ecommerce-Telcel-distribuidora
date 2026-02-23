@@ -13,6 +13,8 @@ import { Planes } from './features/services/planes/planes';
 import { Portabilidad } from './features/services/portabilidad/portabilidad';
 import { Recuperacion } from './features/services/recuperacion/recuperacion';
 import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
+import { AdminPanel } from './features/admin/admin-panel/admin-panel';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -27,6 +29,7 @@ export const routes: Routes = [
   { path: 'servicios/planes', component: Planes },
   { path: 'servicios/portabilidad', component: Portabilidad },
   { path: 'servicios/recuperacion', component: Recuperacion },
+  { path: 'admin', component: AdminPanel, canActivate: [authGuard, adminGuard] },
   { path: 'recuperar-contrasena', component: ForgotPassword },
   { path: 'restablecer-contrasena', component: ResetPassword },
   { path: '**', redirectTo: 'home' }

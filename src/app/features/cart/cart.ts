@@ -13,15 +13,15 @@ import { CartService } from '../../core/services/cart';
 export class Cart {
   cartService = inject(CartService);
 
-  remove(productId: number): void {
+  remove(productId: string | number): void {
     this.cartService.removeItem(productId);
   }
 
-  increment(productId: number, current: number, stock: number): void {
+  increment(productId: string | number, current: number, stock: number): void {
     if (current < stock) this.cartService.updateQuantity(productId, current + 1);
   }
 
-  decrement(productId: number, current: number): void {
+  decrement(productId: string | number, current: number): void {
     if (current > 1) this.cartService.updateQuantity(productId, current - 1);
     else this.remove(productId);
   }

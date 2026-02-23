@@ -18,8 +18,8 @@
           <label for="cat-all">Todos</label>
         </div>
         @for (cat of categories; track cat.id_categoria) {
-          <div class="filter-option" (click)="filterByCategory(cat.id_categoria)">
-            <input type="checkbox" [checked]="selectedCategory === cat.id_categoria" [id]="'cat-' + cat.id_categoria">
+          <div class="filter-option" (click)="filterByCategory(cat.nombre)">
+            <input type="checkbox" [checked]="selectedCategory === cat.nombre" [id]="'cat-' + cat.id_categoria">
             <label [for]="'cat-' + cat.id_categoria">{{ cat.nombre }}</label>
           </div>
         }

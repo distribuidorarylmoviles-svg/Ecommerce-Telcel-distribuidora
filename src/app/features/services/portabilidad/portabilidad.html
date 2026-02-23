@@ -21,8 +21,8 @@
     }
 
     @if (sent()) {
-      <div class="alert-success" [class.warning]="!emailSent()">
-        <i class="fas" [class.fa-check-circle]="emailSent()" [class.fa-exclamation-triangle]="!emailSent()"></i>
+      <div class="alert-success">
+        <i class="fas fa-check-circle"></i>
         {{ responseMessage() }}
       </div>
     }

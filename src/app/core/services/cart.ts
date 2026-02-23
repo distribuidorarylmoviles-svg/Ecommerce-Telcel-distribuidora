@@ -54,13 +54,13 @@ export class CartService {
     this.saveToStorage();
   }
 
-  updateQuantity(productId: number, cantidad: number): void {
+  updateQuantity(productId: string | number, cantidad: number): void {
     if (cantidad <= 0) { this.removeItem(productId); return; }
     this.items.set(this.items().map(i => i.id_producto === productId ? { ...i, cantidad: Math.min(cantidad, i.stock) } : i));
     this.saveToStorage();
   }
 
-  removeItem(productId: number): void {
+  removeItem(productId: string | number): void {
     this.items.set(this.items().filter(i => i.id_producto !== productId));
     this.saveToStorage();
   }
@@ -124,7 +124,7 @@ export class CartService {
   }
 
   private mergeItems(base: CartItem[], extra: CartItem[]): CartItem[] {
-    const merged = new Map<number, CartItem>();
+    const merged = new Map<CartItem['id_producto'], CartItem>();
 
     for (const item of base) {
       merged.set(item.id_producto, { ...item });

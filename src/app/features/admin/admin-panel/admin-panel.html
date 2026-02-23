@@ -1,0 +1,330 @@
+<section class="admin-page">
+  <header class="admin-header">
+    <div>
+      <p class="eyebrow">Panel administrativo</p>
+      <h1>Gestión del local</h1>
+      <p class="subtitle">Administra productos, visualiza compras y da seguimiento a solicitudes de servicio.</p>
+    </div>
+    <button class="btn-secondary" type="button" (click)="refreshActiveTab()">
+      <i class="fas fa-rotate"></i>
+      Actualizar vista
+    </button>
+  </header>
+
+  <section class="admin-metrics">
+    <article class="metric-card">
+      <span>Productos</span>
+      <strong>{{ metrics().products }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Categorías</span>
+      <strong>{{ metrics().categories }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Compras</span>
+      <strong>{{ metrics().orders }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Solicitudes</span>
+      <strong>{{ metrics().requests }}</strong>
+    </article>
+  </section>
+
+  <nav class="admin-tabs">
+    <button type="button" [class.active]="activeTab() === 'productos'" (click)="selectTab('productos')">
+      Productos
+    </button>
+    <button type="button" [class.active]="activeTab() === 'compras'" (click)="selectTab('compras')">
+      Compras
+    </button>
+    <button type="button" [class.active]="activeTab() === 'categorias'" (click)="selectTab('categorias')">
+      Categorías
+    </button>
+    <button type="button" [class.active]="activeTab() === 'solicitudes'" (click)="selectTab('solicitudes')">
+      Solicitudes de servicios
+    </button>
+  </nav>
+
+  @if (statusMessage()) {
+    <div class="feedback success">{{ statusMessage() }}</div>
+  }
+  @if (errorMessage()) {
+    <div class="feedback error">{{ errorMessage() }}</div>
+  }
+
+  @if (activeTab() === 'productos') {
+    <section class="products-layout">
+      <article class="editor-card">
+        <h2>{{ editingProductId ? 'Editar producto' : 'Nuevo producto' }}</h2>
+
+        <form (ngSubmit)="saveProduct()">
+          <label>
+            Nombre *
+            <input type="text" name="name" [(ngModel)]="productForm.name" required />
+          </label>
+
+          <label>
+            Categoría
+            <input type="text" name="category" [(ngModel)]="productForm.category" list="categories-list" />
+          </label>
+
+          <datalist id="categories-list">
+            @for (category of categories(); track category.id) {
+              <option [value]="category.name"></option>
+            }
+          </datalist>
+
+          <label>
+            Descripción
+            <textarea name="description" rows="4" [(ngModel)]="productForm.description"></textarea>
+          </label>
+
+          <div class="grid-two">
+            <label>
+              Precio
+              <input type="number" name="price" min="0" step="0.01" [(ngModel)]="productForm.price" />
+            </label>
+            <label>
+              Stock
+              <input type="number" name="stock" min="0" step="1" [(ngModel)]="productForm.stock" />
+            </label>
+          </div>
+
+          <label>
+            URL de imagen
+            <input type="text" name="imageUrl" [(ngModel)]="productForm.imageUrl" />
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" [disabled]="savingProduct()">
+              @if (savingProduct()) {
+                Guardando...
+              } @else {
+                {{ editingProductId ? 'Guardar cambios' : 'Crear producto' }}
+              }
+            </button>
+            @if (editingProductId) {
+              <button type="button" class="btn-danger" (click)="cancelProductEdition()">Cancelar</button>
+            }
+          </div>
+        </form>
+      </article>
+
+      <article class="table-card">
+        <h2>Listado de productos</h2>
+
+        @if (productsLoading()) {
+          <div class="empty-state">Cargando productos...</div>
+        } @else if (products().length === 0) {
+          <div class="empty-state">No hay productos disponibles en Supabase.</div>
+        } @else {
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Precio</th>
+                  <th>Categoría</th>
+                  <th>Stock</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (product of products(); track product.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ product.name }}</strong>
+                      <p>{{ product.description || 'Sin descripción' }}</p>
+                    </td>
+                    <td>{{ product.price | currency:'MXN':'symbol-narrow' }}</td>
+                    <td>{{ product.category || 'Sin categoría' }}</td>
+                    <td>{{ product.stock }}</td>
+                    <td class="actions">
+                      <button type="button" class="btn-inline" (click)="editProduct(product)">Editar</button>
+                      <button type="button" class="btn-inline danger" (click)="deleteProduct(product)">Eliminar</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </article>
+    </section>
+  }
+
+  @if (activeTab() === 'categorias') {
+    <section class="card-list">
+      <article class="content-card">
+        <header>
+          <h3>Categorías de productos</h3>
+        </header>
+
+        <form class="category-form" (ngSubmit)="saveCategory()">
+          <label>
+            Nueva categoría
+            <input
+              type="text"
+              name="categoryName"
+              [(ngModel)]="categoryFormName"
+              placeholder="Ej. Accesorios"
+              required
+            />
+          </label>
+          <button type="submit" class="btn-primary" [disabled]="savingCategory()">
+            @if (savingCategory()) {
+              Guardando...
+            } @else {
+              Agregar categoría
+            }
+          </button>
+        </form>
+
+        @if (categoriesLoading()) {
+          <div class="empty-state">Cargando categorías...</div>
+        } @else if (categories().length === 0) {
+          <div class="empty-state">No hay categorías registradas.</div>
+        } @else {
+          <div class="category-list">
+            @for (category of categories(); track category.id) {
+              <article class="category-item">
+                <div>
+                  <strong>{{ category.name }}</strong>
+                  <p>{{ category.createdAt ? (category.createdAt | date:'medium') : 'Sin fecha' }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn-inline danger"
+                  [disabled]="deletingCategoryId() === category.id"
+                  (click)="deleteCategory(category)"
+                >
+                  @if (deletingCategoryId() === category.id) {
+                    Eliminando...
+                  } @else {
+                    Eliminar
+                  }
+                </button>
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </section>
+  }
+
+  @if (activeTab() === 'compras') {
+    <section class="card-list">
+      @if (ordersLoading()) {
+        <div class="empty-state">Cargando compras...</div>
+      } @else if (orders().length === 0) {
+        <div class="empty-state">Aún no hay compras registradas.</div>
+      } @else {
+        @for (order of orders(); track order.id) {
+          <article class="content-card">
+            <header>
+              <h3>Compra #{{ order.id }}</h3>
+              <span class="status-chip">{{ order.status }}</span>
+            </header>
+
+            <div class="card-grid">
+              <p><strong>Total:</strong> {{ order.totalAmount | currency:'MXN':'symbol-narrow' }}</p>
+              <p><strong>Método de pago:</strong> {{ order.paymentMethod }}</p>
+              <p><strong>Usuario:</strong> {{ order.userId || 'N/A' }}</p>
+              <p><strong>Fecha:</strong> {{ order.createdAt ? (order.createdAt | date:'medium') : 'N/A' }}</p>
+            </div>
+
+            <details>
+              <summary>Productos ({{ order.items.length }})</summary>
+              @if (order.items.length === 0) {
+                <p>No se registraron productos para esta compra.</p>
+              } @else {
+                <ul>
+                  @for (item of order.items; track item.id) {
+                    <li>
+                      {{ item.productName }} · {{ item.quantity }} x
+                      {{ item.priceAtPurchase | currency:'MXN':'symbol-narrow' }}
+                    </li>
+                  }
+                </ul>
+              }
+            </details>
+          </article>
+        }
+      }
+    </section>
+  }
+
+  @if (activeTab() === 'solicitudes') {
+    <section class="card-list">
+      @if (requestsLoading()) {
+        <div class="empty-state">Cargando solicitudes...</div>
+      } @else if (serviceRequests().length === 0) {
+        <div class="empty-state">No hay solicitudes de servicio registradas.</div>
+      } @else {
+        @for (request of serviceRequests(); track request.id) {
+          <article class="content-card">
+            <header>
+              <h3>{{ serviceLabel(request.serviceType) }}</h3>
+              <span class="status-chip" [class.off]="requestStatusIsError(request)">
+                {{ requestStatusLabel(request) }}
+              </span>
+            </header>
+
+            <div class="card-grid">
+              <p><strong>Nombre:</strong> {{ request.nombre }}</p>
+              <p><strong>Correo:</strong> {{ request.correoElectronico || 'No capturado' }}</p>
+              <p><strong>Teléfono:</strong> {{ request.telefonoCelular || 'No capturado' }}</p>
+              <p><strong>Fecha:</strong> {{ request.createdAt ? (request.createdAt | date:'medium') : 'N/A' }}</p>
+            </div>
+
+            @if (request.comentario) {
+              <p class="comment"><strong>Comentario:</strong> {{ request.comentario }}</p>
+            }
+
+            @if (payloadEntries(request.payload).length > 0) {
+              <details>
+                <summary>Datos adicionales</summary>
+                <ul>
+                  @for (entry of payloadEntries(request.payload); track entry.key) {
+                    <li><strong>{{ entry.key }}:</strong> {{ entry.value }}</li>
+                  }
+                </ul>
+              </details>
+            }
+
+            @if (request.emailError) {
+              <p class="error-text"><strong>Error de correo:</strong> {{ request.emailError }}</p>
+            }
+
+            <div class="request-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                [disabled]="resendingRequestId() === request.id"
+                (click)="resendServiceRequest(request)"
+              >
+                @if (resendingRequestId() === request.id) {
+                  Reenviando...
+                } @else {
+                  Reenviar correo
+                }
+              </button>
+              <button
+                type="button"
+                class="btn-danger"
+                [disabled]="deletingRequestId() === request.id"
+                (click)="deleteServiceRequest(request)"
+              >
+                @if (deletingRequestId() === request.id) {
+                  Eliminando...
+                } @else {
+                  Eliminar
+                }
+              </button>
+            </div>
+          </article>
+        }
+      }
+    </section>
+  }
+</section>

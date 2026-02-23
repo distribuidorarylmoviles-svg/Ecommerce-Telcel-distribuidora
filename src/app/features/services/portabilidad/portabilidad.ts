@@ -19,7 +19,6 @@ export class Portabilidad {
   loading = signal(false);
   error = signal('');
   responseMessage = signal('');
-  emailSent = signal(true);
 
   form = {
     nombre: '',
@@ -62,7 +61,6 @@ export class Portabilidad {
       next: (response) => {
         this.loading.set(false);
         this.sent.set(true);
-        this.emailSent.set(response.emailSent);
         this.responseMessage.set(response.message);
         formRef.resetForm();
         this.currentTab.set('personal');
