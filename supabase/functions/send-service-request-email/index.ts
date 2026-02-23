@@ -18,6 +18,7 @@ type ServiceRequestRow = {
 };
 
 const validServiceTypes = new Set(['planes', 'portabilidad', 'recuperacion']);
+const defaultDestinationEmail = 'rodriguezlopezfernando26@gmail.com';
 
 function escapeHtml(value: string): string {
   return value
@@ -26,6 +27,12 @@ function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function isValidEmail(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
 }
 
 function formatPayload(payload: Record<string, unknown> | null): string {
@@ -89,10 +96,12 @@ Deno.serve(async (req) => {
     } else {
       const serviceType = String(body.service_type ?? '').trim();
       const nombre = String(body.nombre ?? '').trim();
-      const correoElectronico =
+      const correoElectronicoRaw =
         typeof body.correo_electronico === 'string' && body.correo_electronico.trim()
           ? body.correo_electronico.trim().toLowerCase()
           : null;
+      const correoElectronico =
+        correoElectronicoRaw && isValidEmail(correoElectronicoRaw) ? correoElectronicoRaw : null;
       const telefonoCelular =
         typeof body.telefono_celular === 'string' && body.telefono_celular.trim()
           ? body.telefono_celular.trim()
@@ -131,7 +140,7 @@ Deno.serve(async (req) => {
           telefono_celular: telefonoCelular,
           comentario,
           payload,
-          destination_email: destinationEmailFromBody ?? 'rodriguezlopezfernando26@gmail.com',
+          destination_email: destinationEmailFromBody ?? defaultDestinationEmail,
           user_id: userId,
         })
         .select('*')
@@ -146,8 +155,14 @@ Deno.serve(async (req) => {
       requestRow = insertedRow;
     }
 
-    const destination = typeof to === 'string' && to.trim() ? to.trim() : requestRow.destination_email;
+    const destinationCandidate = typeof to === 'string' && to.trim() ? to.trim() : requestRow.destination_email;
+    const destination = isValidEmail(destinationCandidate) ? destinationCandidate : defaultDestinationEmail;
     const subject = `Nueva solicitud de servicio: ${serviceLabel(requestRow.service_type)}`;
+    
+    // Ensure replyTo is ONLY the email address to avoid Resend validation errors
+    const replyTo = requestRow.correo_electronico && isValidEmail(requestRow.correo_electronico)
+      ? requestRow.correo_electronico.trim()
+      : undefined;
 
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.5;color:#102a43;">
@@ -174,7 +189,7 @@ Deno.serve(async (req) => {
         to: [destination],
         subject,
         html,
-        reply_to: requestRow.correo_electronico ?? undefined,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     });
 
@@ -185,8 +200,8 @@ Deno.serve(async (req) => {
         .update({ email_sent: false, email_error: resendBody })
         .eq('id', requestRow.id);
 
-      return new Response(JSON.stringify({ error: resendBody }), {
-        status: 502,
+      return new Response(JSON.stringify({ ok: false, request_id: requestRow.id, email_sent: false, error: resendBody }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -196,7 +211,7 @@ Deno.serve(async (req) => {
       .update({ email_sent: true, email_error: null })
       .eq('id', requestRow.id);
 
-    return new Response(JSON.stringify({ ok: true, request_id: requestRow.id }), {
+    return new Response(JSON.stringify({ ok: true, request_id: requestRow.id, email_sent: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
