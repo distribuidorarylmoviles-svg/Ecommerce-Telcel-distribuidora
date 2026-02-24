@@ -1,0 +1,15 @@
+<div style="text-align:center; padding: 60px 20px;">
+  <div style="font-size: 64px;">✅</div>
+  <h1>¡Pago exitoso!</h1>
+  <p>Tu pedido ha sido procesado correctamente.</p>
+  <p *ngIf="sessionId" style="color: gray; font-size: 12px;">ID de sesión: {{ sessionId }}</p>
+  <a routerLink="/tienda" style="
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 24px;
+    background-color: #0033a0;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+  ">Seguir comprando</a>
+</div>

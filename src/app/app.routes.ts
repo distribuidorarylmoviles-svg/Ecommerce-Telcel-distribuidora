@@ -15,6 +15,7 @@ import { Recuperacion } from './features/services/recuperacion/recuperacion';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { AdminPanel } from './features/admin/admin-panel/admin-panel';
+import { PedidoExitoso } from './pages/pedido-exitoso/pedido-exitoso';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -32,5 +33,6 @@ export const routes: Routes = [
   { path: 'admin', component: AdminPanel, canActivate: [authGuard, adminGuard] },
   { path: 'recuperar-contrasena', component: ForgotPassword },
   { path: 'restablecer-contrasena', component: ResetPassword },
+  { path: 'pedido-exitoso', component: PedidoExitoso },
   { path: '**', redirectTo: 'home' }
 ];

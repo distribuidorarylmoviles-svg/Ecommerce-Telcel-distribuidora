@@ -101,9 +101,82 @@
     font-size: 18px;
     color: #333;
     margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 }
 
+/* --- NUEVOS ESTILOS PARA MÉTODOS DE PAGO --- */
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 25px;
+
+  .payment-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+
+    &:hover {
+      border-color: #0033A0;
+      background: #f8faff;
+    }
+
+    &.selected {
+      border-color: #0033A0;
+      background: #f0f4ff;
+      box-shadow: 0 4px 12px rgba(0, 51, 160, 0.1);
+    }
+
+    input[type="radio"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 15px;
+      cursor: pointer;
+      accent-color: #0033A0;
+    }
+
+    .payment-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex: 1;
+
+      i {
+        font-size: 24px;
+        color: #555;
+      }
+
+      strong {
+        display: block;
+        font-size: 16px;
+        color: #333;
+      }
+
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: #777;
+      }
+    }
+
+    .stripe-badges {
+      display: flex;
+      gap: 10px;
+      font-size: 24px;
+      color: #666;
+    }
+  }
+}
+
+/* ESTILOS DE FORMULARIO (Se mantienen igual) */
 .form-group {
   margin-bottom: 20px;
 
@@ -143,7 +216,7 @@
   gap: 20px;
 }
 
-/* PAGO */
+/* ALERTAS Y NOTAS */
 .alert-info {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   border-left: 4px solid #0033A0;
@@ -152,25 +225,19 @@
   margin-bottom: 25px;
   display: flex;
   gap: 15px;
-  align-items: start;
+  align-items: center;
 
   i {
-    font-size: 28px;
+    font-size: 24px;
     color: #0033A0;
     flex-shrink: 0;
-  }
-
-  strong {
-    display: block;
-    color: #0033A0;
-    margin-bottom: 8px;
-    font-size: 16px;
   }
 
   p {
     color: #333;
     font-size: 14px;
-    line-height: 1.6;
+    margin: 0;
+    line-height: 1.5;
   }
 }
 
@@ -184,7 +251,7 @@
   gap: 12px;
 
   i {
-    font-size: 28px;
+    font-size: 24px;
     color: #25d366;
   }
 
@@ -240,7 +307,7 @@
   color: white;
   border: none;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(255, 123, 0, 0.4);
   }
@@ -248,11 +315,10 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
   }
 }
 
-/* RESUMEN */
+/* RESUMEN (Se mantiene igual) */
 .checkout-summary {
   position: sticky;
   top: 20px;
@@ -341,7 +407,7 @@
   padding-top: 15px;
 }
 
-/* SUCCESS */
+/* SUCCESS (Se mantiene igual) */
 .success-card {
   text-align: center;
   padding: 60px 30px;
@@ -352,12 +418,10 @@
   margin: 40px auto;
 }
 
-.success-icon {
-  i {
-    font-size: 64px;
-    color: #28a745;
-    margin-bottom: 20px;
-  }
+.success-icon i {
+  font-size: 64px;
+  color: #28a745;
+  margin-bottom: 20px;
 }
 
 .success-card h1 {
@@ -391,7 +455,7 @@
   }
 }
 
-/* RESPONSIVE */
+/* RESPONSIVE (Se mantiene igual) */
 @media (max-width: 1024px) {
   .checkout-content { grid-template-columns: 1fr; }
   .checkout-summary { position: static; }

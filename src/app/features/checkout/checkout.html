@@ -6,7 +6,10 @@
       </div>
       <h1>¡Pedido Realizado!</h1>
       <p>Tu pedido #{{ orderId }} ha sido registrado exitosamente.</p>
-      <p class="sub-text">Método de pago: Transferencia bancaria. Nos comunicaremos contigo para coordinar el pago.</p>
+      <p class="sub-text">
+        Método de pago: {{ metodoPago === 'stripe' ? 'Tarjeta (Stripe)' : 'Transferencia bancaria' }}. 
+        Nos comunicaremos contigo para coordinar los detalles finales.
+      </p>
       @if (whatsappUrl) {
         <a [href]="whatsappUrl" target="_blank" class="btn-whatsapp">
           <i class="fab fa-whatsapp"></i> Enviar por WhatsApp
@@ -15,13 +18,12 @@
       <a routerLink="/home" class="btn-back"><i class="fas fa-home"></i> Volver al inicio</a>
     </div>
   } @else {
-    <!-- Progress -->
     <div class="checkout-progress">
       <div class="progress-step active">
         <i class="fas fa-map-marker-alt"></i>
         <span>Dirección</span>
       </div>
-      <div class="progress-step">
+      <div class="progress-step" [class.active]="metodoPago">
         <i class="fas fa-credit-card"></i>
         <span>Pago</span>
       </div>
@@ -32,10 +34,10 @@
     </div>
 
     <div class="checkout-content">
-      <!-- Formulario -->
       <div class="checkout-form-section">
         <h2><i class="fas fa-shipping-fast"></i> Datos de envío</h2>
         <form (ngSubmit)="onSubmit()" #checkoutForm="ngForm">
+          
           <div class="form-section">
             <h3>Datos de contacto</h3>
             <div class="form-row">
@@ -93,31 +95,64 @@
           </div>
 
           <div class="form-section">
-            <h3>Método de pago</h3>
-            <div class="alert-info">
-              <i class="fas fa-info-circle"></i>
-              <div>
-                <strong>Transferencia bancaria</strong>
-                <p>Al confirmar tu pedido, te enviaremos los datos bancarios por WhatsApp para realizar la transferencia.</p>
+            <h3><i class="fas fa-wallet"></i> Método de pago</h3>
+            
+            <div class="payment-options">
+              <div class="payment-card" [class.selected]="metodoPago === 'stripe'" (click)="metodoPago = 'stripe'">
+                <input type="radio" id="stripe" name="metodo" [(ngModel)]="metodoPago" value="stripe">
+                <div class="payment-info">
+                  <i class="fas fa-credit-card"></i>
+                  <div>
+                    <strong>Tarjeta de Crédito / Débito</strong>
+                    <p>Pago seguro a través de Stripe</p>
+                  </div>
+                </div>
+                <div class="stripe-badges">
+                  <i class="fab fa-cc-visa"></i>
+                  <i class="fab fa-cc-mastercard"></i>
+                </div>
+              </div>
+
+              <div class="payment-card" [class.selected]="metodoPago === 'transferencia'" (click)="metodoPago = 'transferencia'">
+                <input type="radio" id="transfer" name="metodo" [(ngModel)]="metodoPago" value="transferencia">
+                <div class="payment-info">
+                  <i class="fas fa-exchange-alt"></i>
+                  <div>
+                    <strong>Transferencia o WhatsApp</strong>
+                    <p>Datos bancarios al finalizar</p>
+                  </div>
+                </div>
+                <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.2rem;"></i>
               </div>
             </div>
-            <div class="whatsapp-notice">
-              <i class="fab fa-whatsapp"></i>
-              <p>Recibirás un mensaje de WhatsApp con los detalles de tu pedido y los datos para el pago.</p>
-            </div>
+
+            @if (metodoPago === 'stripe') {
+              <div class="alert-info animate__animated animate__fadeIn">
+                <i class="fas fa-shield-alt"></i>
+                <p>Serás redirigido a Stripe para completar tu pago de forma segura.</p>
+              </div>
+            } @else {
+              <div class="whatsapp-notice animate__animated animate__fadeIn">
+                <i class="fab fa-whatsapp"></i>
+                <p>Te enviaremos los datos para el depósito directamente a tu WhatsApp.</p>
+              </div>
+            }
           </div>
 
           <div class="form-actions">
-            <a routerLink="/carrito" class="btn-back"><i class="fas fa-arrow-left"></i> Volver al carrito</a>
+            <a routerLink="/carrito" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
             <button type="submit" class="btn-submit" [disabled]="checkoutForm.invalid || loading">
-              @if (loading) { <i class="fas fa-spinner fa-spin"></i> Procesando... }
-              @else { <i class="fas fa-check"></i> Confirmar Pedido }
+              @if (loading) { 
+                <i class="fas fa-spinner fa-spin"></i> Procesando... 
+              } @else { 
+                <i class="fas fa-check"></i> 
+                {{ metodoPago === 'stripe' ? 'Pagar con Stripe' : 'Confirmar Pedido' }}
+              }
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Resumen -->
       <aside class="checkout-summary">
         <div class="summary-card">
           <h3>Resumen del pedido</h3>

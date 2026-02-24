@@ -6,6 +6,8 @@ import { CartService } from '../../core/services/cart';
 import { OrderService } from '../../core/services/order';
 import { AuthService } from '../../core/services/auth';
 import { CheckoutRequest } from '../../core/models/order';
+import { loadStripe } from '@stripe/stripe-js';
+import { environment } from '../../../environments/environment'; 
 
 @Component({
   selector: 'app-checkout',
@@ -21,22 +23,16 @@ export class Checkout implements OnInit {
   private router = inject(Router);
 
   form: CheckoutRequest = {
-    nombre: '',
-    apellidos: '',
-    email: '',
-    telefono: '',
-    calle: '',
-    colonia: '',
-    codigo_postal: '',
-    ciudad: '',
-    estado: '',
-    referencias: ''
+    nombre: '', apellidos: '', email: '', telefono: '',
+    calle: '', colonia: '', codigo_postal: '', ciudad: '',
+    estado: '', referencias: ''
   };
 
   loading = false;
   orderSuccess = false;
   orderId: string | null = null;
   whatsappUrl: string | null = null;
+  metodoPago: 'stripe' | 'transferencia' = 'stripe'; 
 
   ngOnInit(): void {
     if (this.cartService.cartItems().length === 0) {
@@ -52,6 +48,45 @@ export class Checkout implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.metodoPago === 'stripe') {
+      this.pagarConStripe();
+    } else {
+      this.procesarPedidoWhatsApp();
+    }
+  }
+
+  async pagarConStripe() {
+    this.loading = true;
+    try {
+      const stripe: any = await loadStripe(environment.stripePublicKey);
+      if (!stripe) throw new Error('No se pudo cargar Stripe');
+
+      const datosPedido = {
+        items: this.cartService.cartItems(),
+        email: this.form.email,
+        total: this.cartService.total(),
+        customer_info: this.form
+      };
+
+      this.orderService.crearSesionStripe(datosPedido).subscribe({
+        next: async (res: any) => {
+          // Nueva forma compatible con Stripe.js actual
+          window.location.href = res.url;
+        },
+        error: (err) => {
+          console.error("Error al crear sesión de pago:", err);
+          alert('Error: No se pudo conectar con el servidor de pagos. Revisa la Edge Function.');
+          this.loading = false;
+        }
+      });
+
+    } catch (error) {
+      console.error("Error con Stripe:", error);
+      this.loading = false;
+    }
+  }
+
+  private procesarPedidoWhatsApp(): void {
     this.loading = true;
     this.orderService.procesarPedido({
       items: this.cartService.cartItems(),
