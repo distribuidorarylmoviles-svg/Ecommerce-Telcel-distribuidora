@@ -43,6 +43,9 @@
     <button type="button" [class.active]="activeTab() === 'solicitudes'" (click)="selectTab('solicitudes')">
       Solicitudes de servicios
     </button>
+    <button type="button" [class.active]="activeTab() === 'ubicacion'" (click)="selectTab('ubicacion')">
+      Ubicación
+    </button>
   </nav>
 
   @if (statusMessage()) {
@@ -56,13 +59,11 @@
     <section class="products-layout">
       <article class="editor-card">
         <h2>{{ editingProductId ? 'Editar producto' : 'Nuevo producto' }}</h2>
-
         <form (ngSubmit)="saveProduct()">
           <label>
             Nombre *
             <input type="text" name="name" [(ngModel)]="productForm.name" required />
           </label>
-
           <label>
             Categoría
             <select name="category" [(ngModel)]="productForm.category">
@@ -72,12 +73,10 @@
               }
             </select>
           </label>
-
           <label>
             Descripción
             <textarea name="description" rows="4" [(ngModel)]="productForm.description"></textarea>
           </label>
-
           <div class="grid-two">
             <label>
               Precio
@@ -88,17 +87,13 @@
               <input type="number" name="stock" min="0" step="1" [(ngModel)]="productForm.stock" />
             </label>
           </div>
-
           <label>
             URL de imagen
             <input type="text" name="imageUrl" [(ngModel)]="productForm.imageUrl" />
           </label>
-
           <div class="form-actions">
             <button type="submit" class="btn-primary" [disabled]="savingProduct()">
-              @if (savingProduct()) {
-                Guardando...
-              } @else {
+              @if (savingProduct()) { Guardando... } @else {
                 {{ editingProductId ? 'Guardar cambios' : 'Crear producto' }}
               }
             </button>
@@ -111,7 +106,6 @@
 
       <article class="table-card">
         <h2>Listado de productos</h2>
-
         @if (productsLoading()) {
           <div class="empty-state">Cargando productos...</div>
         } @else if (products().length === 0) {
@@ -168,39 +162,19 @@
           <div class="grid-two">
             <label>
               Nombre de categoría *
-              <input
-                type="text"
-                name="categoryName"
-                [(ngModel)]="categoryForm.name"
-                placeholder="Ej. Accesorios"
-                required
-              />
+              <input type="text" name="categoryName" [(ngModel)]="categoryForm.name" placeholder="Ej. Accesorios" required />
             </label>
             <label>
               URL de imagen
-              <input
-                type="text"
-                name="categoryImageUrl"
-                [(ngModel)]="categoryForm.imageUrl"
-                placeholder="URL de la imagen"
-              />
+              <input type="text" name="categoryImageUrl" [(ngModel)]="categoryForm.imageUrl" placeholder="URL de la imagen" />
             </label>
           </div>
           <label>
             Descripción
-            <textarea
-              name="categoryDescription"
-              [(ngModel)]="categoryForm.description"
-              placeholder="Breve descripción de la categoría"
-              rows="2"
-            ></textarea>
+            <textarea name="categoryDescription" [(ngModel)]="categoryForm.description" placeholder="Breve descripción de la categoría" rows="2"></textarea>
           </label>
           <button type="submit" class="btn-primary" [disabled]="savingCategory()">
-            @if (savingCategory()) {
-              Guardando...
-            } @else {
-              Agregar categoría
-            }
+            @if (savingCategory()) { Guardando... } @else { Agregar categoría }
           </button>
         </form>
 
@@ -234,17 +208,8 @@
                     <td><strong>{{ category.name }}</strong></td>
                     <td>{{ category.description || 'Sin descripción' }}</td>
                     <td class="actions">
-                      <button
-                        type="button"
-                        class="btn-inline danger"
-                        [disabled]="deletingCategoryId() === category.id"
-                        (click)="deleteCategory(category)"
-                      >
-                        @if (deletingCategoryId() === category.id) {
-                          ...
-                        } @else {
-                          Eliminar
-                        }
+                      <button type="button" class="btn-inline danger" [disabled]="deletingCategoryId() === category.id" (click)="deleteCategory(category)">
+                        @if (deletingCategoryId() === category.id) { ... } @else { Eliminar }
                       </button>
                     </td>
                   </tr>
@@ -270,14 +235,12 @@
               <h3>Compra #{{ order.id }}</h3>
               <span class="status-chip">{{ order.status }}</span>
             </header>
-
             <div class="card-grid">
               <p><strong>Total:</strong> {{ order.totalAmount | currency:'MXN':'symbol-narrow' }}</p>
               <p><strong>Método de pago:</strong> {{ order.paymentMethod }}</p>
               <p><strong>Usuario:</strong> {{ order.userId || 'N/A' }}</p>
               <p><strong>Fecha:</strong> {{ order.createdAt ? (order.createdAt | date:'medium') : 'N/A' }}</p>
             </div>
-
             <details>
               <summary>Productos ({{ order.items.length }})</summary>
               @if (order.items.length === 0) {
@@ -285,10 +248,7 @@
               } @else {
                 <ul>
                   @for (item of order.items; track item.id) {
-                    <li>
-                      {{ item.productName }} · {{ item.quantity }} x
-                      {{ item.priceAtPurchase | currency:'MXN':'symbol-narrow' }}
-                    </li>
+                    <li>{{ item.productName }} · {{ item.quantity }} x {{ item.priceAtPurchase | currency:'MXN':'symbol-narrow' }}</li>
                   }
                 </ul>
               }
@@ -314,18 +274,15 @@
                 {{ requestStatusLabel(request) }}
               </span>
             </header>
-
             <div class="card-grid">
               <p><strong>Nombre:</strong> {{ request.nombre }}</p>
               <p><strong>Correo:</strong> {{ request.correoElectronico || 'No capturado' }}</p>
               <p><strong>Teléfono:</strong> {{ request.telefonoCelular || 'No capturado' }}</p>
               <p><strong>Fecha:</strong> {{ request.createdAt ? (request.createdAt | date:'medium') : 'N/A' }}</p>
             </div>
-
             @if (request.comentario) {
               <p class="comment"><strong>Comentario:</strong> {{ request.comentario }}</p>
             }
-
             @if (payloadEntries(request.payload).length > 0) {
               <details>
                 <summary>Datos adicionales</summary>
@@ -336,35 +293,15 @@
                 </ul>
               </details>
             }
-
             @if (request.emailError) {
               <p class="error-text"><strong>Error de correo:</strong> {{ request.emailError }}</p>
             }
-
             <div class="request-actions">
-              <button
-                type="button"
-                class="btn-secondary"
-                [disabled]="resendingRequestId() === request.id"
-                (click)="resendServiceRequest(request)"
-              >
-                @if (resendingRequestId() === request.id) {
-                  Reenviando...
-                } @else {
-                  Reenviar correo
-                }
+              <button type="button" class="btn-secondary" [disabled]="resendingRequestId() === request.id" (click)="resendServiceRequest(request)">
+                @if (resendingRequestId() === request.id) { Reenviando... } @else { Reenviar correo }
               </button>
-              <button
-                type="button"
-                class="btn-danger"
-                [disabled]="deletingRequestId() === request.id"
-                (click)="deleteServiceRequest(request)"
-              >
-                @if (deletingRequestId() === request.id) {
-                  Eliminando...
-                } @else {
-                  Eliminar
-                }
+              <button type="button" class="btn-danger" [disabled]="deletingRequestId() === request.id" (click)="deleteServiceRequest(request)">
+                @if (deletingRequestId() === request.id) { Eliminando... } @else { Eliminar }
               </button>
             </div>
           </article>
@@ -372,4 +309,67 @@
       }
     </section>
   }
+
+  @if (activeTab() === 'ubicacion') {
+    <section class="card-list">
+      <article class="content-card">
+        <h3>Información de la tienda</h3>
+
+        @if (storeInfoLoading()) {
+          <div class="empty-state">Cargando información...</div>
+        } @else {
+          <form (ngSubmit)="saveStoreInfo()">
+            <div class="grid-two">
+              <label>
+                Teléfono
+                <input type="text" name="telefono" [(ngModel)]="storeForm.telefono" />
+              </label>
+              <label>
+                WhatsApp
+                <input type="text" name="whatsapp" [(ngModel)]="storeForm.whatsapp" />
+              </label>
+            </div>
+
+            <label>
+              Correo
+              <input type="email" name="correo" [(ngModel)]="storeForm.correo" />
+            </label>
+
+            <div class="grid-two">
+              <label>
+                Horario (días)
+                <input type="text" name="horario_dias" [(ngModel)]="storeForm.horario_dias" placeholder="Ej. Lunes a Domingo" />
+              </label>
+              <label>
+                Horario (horas)
+                <input type="text" name="horario_horas" [(ngModel)]="storeForm.horario_horas" placeholder="Ej. 9:00 AM - 7:00 PM" />
+              </label>
+            </div>
+
+            <label>
+              Dirección
+              <input type="text" name="direccion" [(ngModel)]="storeForm.direccion" />
+            </label>
+
+            <label>
+              URL del mapa embed (iframe src)
+              <input type="text" name="maps_embed_url" [(ngModel)]="storeForm.maps_embed_url" />
+            </label>
+
+            <label>
+              Link de Google Maps
+              <input type="text" name="maps_link" [(ngModel)]="storeForm.maps_link" />
+            </label>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" [disabled]="savingStoreInfo()">
+                @if (savingStoreInfo()) { Guardando... } @else { Guardar cambios }
+              </button>
+            </div>
+          </form>
+        }
+      </article>
+    </section>
+  }
+
 </section>

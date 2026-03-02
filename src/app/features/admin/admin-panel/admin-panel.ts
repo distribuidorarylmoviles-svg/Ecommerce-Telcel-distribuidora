@@ -9,9 +9,9 @@ import {
   AdminProductInput,
   AdminServiceRequest,
 } from '../../../core/models/admin';
-import { AdminService } from '../../../core/services/admin';
+import { AdminService, StoreInfo } from '../../../core/services/admin';
 
-type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes';
+type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicacion';
 
 @Component({
   selector: 'app-admin-panel',
@@ -28,13 +28,16 @@ export class AdminPanel implements OnInit {
   readonly categories = signal<AdminCategory[]>([]);
   readonly orders = signal<AdminOrder[]>([]);
   readonly serviceRequests = signal<AdminServiceRequest[]>([]);
+  readonly storeInfo = signal<StoreInfo | null>(null);
 
   readonly productsLoading = signal(false);
   readonly categoriesLoading = signal(false);
   readonly ordersLoading = signal(false);
   readonly requestsLoading = signal(false);
+  readonly storeInfoLoading = signal(false);
   readonly savingProduct = signal(false);
   readonly savingCategory = signal(false);
+  readonly savingStoreInfo = signal(false);
   readonly deletingCategoryId = signal<string | null>(null);
   readonly resendingRequestId = signal<string | null>(null);
   readonly deletingRequestId = signal<string | null>(null);
@@ -44,6 +47,7 @@ export class AdminPanel implements OnInit {
   editingProductId: string | null = null;
   productForm: AdminProductInput = this.emptyProductForm();
   categoryForm: AdminCategoryInput = this.emptyCategoryForm();
+  storeForm: StoreInfo = this.emptyStoreForm();
 
   readonly metrics = computed(() => ({
     products: this.products().length,
@@ -58,6 +62,7 @@ export class AdminPanel implements OnInit {
       this.loadCategories(),
       this.loadOrders(),
       this.loadServiceRequests(),
+      this.loadStoreInfo(),
     ]);
   }
 
@@ -71,17 +76,18 @@ export class AdminPanel implements OnInit {
       await this.loadProducts();
       return;
     }
-
     if (this.activeTab() === 'compras') {
       await this.loadOrders();
       return;
     }
-
     if (this.activeTab() === 'categorias') {
       await this.loadCategories();
       return;
     }
-
+    if (this.activeTab() === 'ubicacion') {
+      await this.loadStoreInfo();
+      return;
+    }
     await this.loadServiceRequests();
   }
 
@@ -108,12 +114,10 @@ export class AdminPanel implements OnInit {
       this.errorMessage.set('El nombre del producto es obligatorio.');
       return;
     }
-
     if (Number(this.productForm.price) < 0) {
       this.errorMessage.set('El precio no puede ser negativo.');
       return;
     }
-
     if (Number(this.productForm.stock) < 0) {
       this.errorMessage.set('El stock no puede ser negativo.');
       return;
@@ -176,12 +180,9 @@ export class AdminPanel implements OnInit {
   }
 
   async deleteCategory(category: AdminCategory): Promise<void> {
-    const accepted =
-      typeof window !== 'undefined'
-        ? window.confirm(
-            `¿Eliminar la categoría "${category.name}"? Los productos asociados quedarán sin categoría.`,
-          )
-        : false;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar la categoría "${category.name}"? Los productos asociados quedarán sin categoría.`)
+      : false;
 
     if (!accepted) return;
 
@@ -203,12 +204,9 @@ export class AdminPanel implements OnInit {
   }
 
   async deleteAllCategories(): Promise<void> {
-    const accepted =
-      typeof window !== 'undefined'
-        ? window.confirm(
-            '¿ELIMINAR TODAS LAS CATEGORÍAS? Esta acción desvinculará todos los productos y no se puede deshacer.',
-          )
-        : false;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm('¿ELIMINAR TODAS LAS CATEGORÍAS? Esta acción desvinculará todos los productos y no se puede deshacer.')
+      : false;
 
     if (!accepted) return;
 
@@ -228,10 +226,9 @@ export class AdminPanel implements OnInit {
   }
 
   async deleteProduct(product: AdminProduct): Promise<void> {
-    const accepted =
-      typeof window !== 'undefined'
-        ? window.confirm(`¿Eliminar "${product.name}"? Esta acción no se puede deshacer.`)
-        : false;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar "${product.name}"? Esta acción no se puede deshacer.`)
+      : false;
 
     if (!accepted) return;
 
@@ -249,10 +246,9 @@ export class AdminPanel implements OnInit {
   }
 
   async deleteServiceRequest(request: AdminServiceRequest): Promise<void> {
-    const accepted =
-      typeof window !== 'undefined'
-        ? window.confirm(`¿Eliminar la solicitud de "${request.nombre}"? Esta acción no se puede deshacer.`)
-        : false;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar la solicitud de "${request.nombre}"? Esta acción no se puede deshacer.`)
+      : false;
 
     if (!accepted) return;
 
@@ -282,6 +278,21 @@ export class AdminPanel implements OnInit {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo reenviar el correo.'));
     } finally {
       this.resendingRequestId.set(null);
+    }
+  }
+
+  async saveStoreInfo(): Promise<void> {
+    this.savingStoreInfo.set(true);
+    this.clearFeedback();
+
+    try {
+      await this.adminService.updateStoreInfo(this.storeForm);
+      this.statusMessage.set('Información de la tienda actualizada correctamente.');
+      await this.loadStoreInfo();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo actualizar la información.'));
+    } finally {
+      this.savingStoreInfo.set(false);
     }
   }
 
@@ -353,22 +364,38 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  private async loadStoreInfo(): Promise<void> {
+    this.storeInfoLoading.set(true);
+    try {
+      const info = await this.adminService.getStoreInfo();
+      this.storeInfo.set(info);
+      if (info) this.storeForm = { ...info };
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo cargar la información de la tienda.'));
+    } finally {
+      this.storeInfoLoading.set(false);
+    }
+  }
+
   private emptyProductForm(): AdminProductInput {
-    return {
-      name: '',
-      description: '',
-      price: 0,
-      category: '',
-      stock: 0,
-      imageUrl: '',
-    };
+    return { name: '', description: '', price: 0, category: '', stock: 0, imageUrl: '' };
   }
 
   private emptyCategoryForm(): AdminCategoryInput {
+    return { name: '', description: '', imageUrl: '' };
+  }
+
+  private emptyStoreForm(): StoreInfo {
     return {
-      name: '',
-      description: '',
-      imageUrl: '',
+      id: 1,
+      telefono: '',
+      correo: '',
+      whatsapp: '',
+      horario_dias: '',
+      horario_horas: '',
+      direccion: '',
+      maps_embed_url: '',
+      maps_link: '',
     };
   }
 
@@ -383,12 +410,8 @@ export class AdminPanel implements OnInit {
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
-    if (typeof error === 'string' && error.trim()) {
-      return error;
-    }
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === 'string' && error.trim()) return error;
     return fallback;
   }
 }

@@ -10,6 +10,18 @@ import {
   AdminServiceRequest,
 } from '../models/admin';
 
+export type StoreInfo = {
+  id: number;
+  telefono: string;
+  correo: string;
+  whatsapp: string;
+  horario_dias: string;
+  horario_horas: string;
+  direccion: string;
+  maps_embed_url: string;
+  maps_link: string;
+};
+
 type DbProductRow = {
   id: string;
   name: string;
@@ -117,10 +129,10 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('categories')
-      .insert({ 
+      .insert({
         name,
         description: input.description.trim() || null,
-        image_url: input.imageUrl.trim() || null
+        image_url: input.imageUrl.trim() || null,
       })
       .select('id, name, description, image_url, created_at')
       .single();
@@ -171,22 +183,16 @@ export class AdminService {
   async deleteAllCategories(): Promise<void> {
     const supabase = this.supabaseService.getClient();
 
-    // 1. Desvincular todos los productos de sus categorías
     const { error: clearError } = await supabase
       .from('products')
       .update({ category: null })
-      .neq('category', ''); // O simplemente no filtrar para limpiar todos
+      .neq('category', '');
 
     if (clearError) {
       throw new Error(clearError.message || 'No se pudieron desvincular los productos.');
     }
 
-    // 2. Eliminar todas las categorías
-    // Usamos un filtro que siempre sea verdadero (como id no es nulo) para permitir el delete masivo si no hay políticas que lo impidan
-    const { error: deleteError } = await supabase
-      .from('categories')
-      .delete()
-      .neq('name', ''); 
+    const { error: deleteError } = await supabase.from('categories').delete().neq('name', '');
 
     if (deleteError) {
       throw new Error(deleteError.message || 'No se pudieron eliminar las categorías.');
@@ -337,6 +343,29 @@ export class AdminService {
     const response = data as { ok?: boolean; error?: string } | null | undefined;
     if (response?.ok === false) {
       throw new Error(response.error?.trim() || 'No se pudo reenviar el correo.');
+    }
+  }
+
+  async getStoreInfo(): Promise<StoreInfo | null> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('store_info')
+      .select('*')
+      .single();
+
+    if (error) return null;
+    return data as StoreInfo;
+  }
+
+  async updateStoreInfo(info: StoreInfo): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('store_info')
+      .update(info)
+      .eq('id', info.id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo actualizar la información de la tienda.');
     }
   }
 
