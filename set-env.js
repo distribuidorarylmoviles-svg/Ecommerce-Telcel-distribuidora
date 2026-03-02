@@ -3,25 +3,24 @@ const { promisify } = require('util');
 
 const writeFileAsync = promisify(writeFile);
 
-// La ruta al archivo de entorno de producción
 const targetPath = './src/environments/environment.production.ts';
 
-// Las variables de entorno que Vercel nos dará.
-// En Vercel, estas variables deben estar configuradas.
-// Soportamos ambos formatos para evitar errores por mayúsculas/minúsculas.
 const supabaseUrl = process.env.SUPABASE_URL || process.env.supabaseUrl || '';
 const supabaseKey = process.env.SUPABASE_KEY || process.env.supabaseKey || '';
+const stripePublicKey = process.env.STRIPE_PUBLIC_KEY || '';
+
 const missingVars = [];
 if (!supabaseUrl) missingVars.push('SUPABASE_URL (o supabaseUrl)');
 if (!supabaseKey) missingVars.push('SUPABASE_KEY (o supabaseKey)');
+
 const isVercelBuild = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 
-// El contenido que se escribirá en el archivo
 const envConfigFile = `export const environment = {
   production: true,
   apiUrl: '/api',
   supabaseUrl: '${supabaseUrl}',
   supabaseKey: '${supabaseKey}',
+  stripePublicKey: '${stripePublicKey}',
 };
 `;
 
