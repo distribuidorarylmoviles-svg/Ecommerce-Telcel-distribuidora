@@ -68,14 +68,20 @@ export class Checkout implements OnInit {
         customer_info: this.form
       };
 
-      this.orderService.crearSesionStripe(datosPedido).subscribe({
+      const token = await this.orderService.getSession();
+      if (!token) {
+        alert('Debes iniciar sesión para pagar.');
+        this.loading = false;
+        return;
+      }
+
+      this.orderService.crearSesionStripe(datosPedido, token).subscribe({
         next: async (res: any) => {
-          // Nueva forma compatible con Stripe.js actual
           window.location.href = res.url;
         },
         error: (err) => {
           console.error("Error al crear sesión de pago:", err);
-          alert('Error: No se pudo conectar con el servidor de pagos. Revisa la Edge Function.');
+          alert('Error: No se pudo conectar con el servidor de pagos.');
           this.loading = false;
         }
       });
