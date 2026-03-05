@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, OnInit, PLATFORM_ID, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -12,12 +12,14 @@ import { Category } from '../../../core/models/category';
   imports: [FormsModule, ProductCard],
   templateUrl: './product-list.html',
   styleUrl: './product-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductList implements OnInit {
   private productService = inject(ProductService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
+  private cdr = inject(ChangeDetectorRef);
 
   displayedProducts: Product[] = [];
   categories: Category[] = [];
@@ -30,7 +32,12 @@ export class ProductList implements OnInit {
 
   ngOnInit(): void {
     this.productService.getCategories().subscribe({
-      next: (res) => { if (res.success) this.categories = res.categorias; }
+      next: (res) => {
+        if (res.success) {
+          this.categories = res.categorias;
+          this.cdr.markForCheck();
+        }
+      }
     });
 
     this.route.queryParams.subscribe(params => {
@@ -63,12 +70,16 @@ export class ProductList implements OnInit {
           this.displayedProducts = res.productos;
           this.totalPages = res.total_paginas;
           this.totalProducts = res.total;
+          this.cdr.markForCheck();
           if (isPlatformBrowser(this.platformId)) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }
       },
-      error: () => this.loading = false
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
