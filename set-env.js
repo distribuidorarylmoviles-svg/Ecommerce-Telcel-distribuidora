@@ -7,7 +7,7 @@ const targetPath = './src/environments/environment.production.ts';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.supabaseUrl || '';
 const supabaseKey = process.env.SUPABASE_KEY || process.env.supabaseKey || '';
-const stripePublicKey = process.env.STRIPE_PUBLIC_KEY || '';
+const stripePublicKey = 'pk_test_51T2cguPm70ZpLbHDAcVQs1tYG69bIr5dRzAUDvIYRBz4u5K1QNaw51hQouqq2IMMINP6fhJ6QDO4JkQVhFOJDxVe00Ld4IO9o0';
 
 const missingVars = [];
 if (!supabaseUrl) missingVars.push('SUPABASE_URL (o supabaseUrl)');
