@@ -54,13 +54,14 @@
               <button (click)="incrementQty()" [disabled]="quantity >= product.stock">+</button>
             </div>
 
-            <button class="btn-add-cart" (click)="addToCart()">
-              @if (addedToCart) {
-                Agregado!
-              } @else {
-                Agregar al carrito
-              }
-            </button>
+            <div class="action-buttons">
+              <button class="btn-add-cart" (click)="addToCart()">
+                @if (addedToCart) { ¡Agregado! } @else { Agregar al carrito }
+              </button>
+              <button class="btn-buy-now" (click)="buyNow()">
+                Comprar ahora
+              </button>
+            </div>
           }
 
           @if (product.descripcion) {

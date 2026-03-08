@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CurrencyPipe } from '@angular/common';
 import { ProductService } from '../../../core/services/product';
 import { CartService } from '../../../core/services/cart';
@@ -14,6 +14,7 @@ import { Product } from '../../../core/models/product';
 })
 export class ProductDetail implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private productService = inject(ProductService);
   private cartService = inject(CartService);
   private cdr = inject(ChangeDetectorRef);
@@ -87,5 +88,18 @@ export class ProductDetail implements OnInit {
       this.addedToCart = false;
       this.cdr.markForCheck();
     }, 2000);
+  }
+
+  buyNow(): void {
+    if (!this.product || this.product.stock <= 0) return;
+    this.cartService.addItem({
+      id_producto: this.product.id_producto,
+      nombre: this.product.nombre,
+      precio: this.product.precio,
+      cantidad: this.quantity,
+      imagen: this.toImgUrl(this.product.imagen_principal || ''),
+      stock: this.product.stock,
+    });
+    void this.router.navigate(['/checkout']);
   }
 }
