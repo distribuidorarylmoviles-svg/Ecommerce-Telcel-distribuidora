@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CurrencyPipe } from '@angular/common';
 import { ProductService } from '../../../core/services/product';
@@ -16,11 +16,13 @@ export class ProductDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private productService = inject(ProductService);
   private cartService = inject(CartService);
+  private cdr = inject(ChangeDetectorRef);
 
   product: Product | null = null;
   selectedImage = '';
   quantity = 1;
   loading = true;
+  loadError = false;
   addedToCart = false;
 
   toImgUrl(filename: string): string {
@@ -32,18 +34,30 @@ export class ProductDetail implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.productService.getProduct(id).subscribe({
-        next: (res) => {
-          this.loading = false;
-          if (res.success && res.producto) {
-            this.product = res.producto;
-            this.selectedImage = this.toImgUrl(res.producto.imagen_principal || '');
-          }
-        },
-        error: () => this.loading = false
-      });
+
+    if (!id) {
+      this.loading = false;
+      this.loadError = true;
+      return;
     }
+
+    this.productService.getProduct(id).subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (res.success && res.producto) {
+          this.product = res.producto;
+          this.selectedImage = this.toImgUrl(res.producto.imagen_principal || '');
+        } else {
+          this.loadError = true;
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.loadError = true;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   selectImage(url: string): void {
@@ -66,9 +80,12 @@ export class ProductDetail implements OnInit {
       precio: this.product.precio,
       cantidad: this.quantity,
       imagen: this.toImgUrl(this.product.imagen_principal || ''),
-      stock: this.product.stock
+      stock: this.product.stock,
     });
     this.addedToCart = true;
-    setTimeout(() => this.addedToCart = false, 2000);
+    setTimeout(() => {
+      this.addedToCart = false;
+      this.cdr.markForCheck();
+    }, 2000);
   }
 }

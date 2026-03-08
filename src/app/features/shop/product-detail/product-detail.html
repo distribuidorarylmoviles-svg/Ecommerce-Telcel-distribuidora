@@ -2,9 +2,10 @@
   <div class="container">
     @if (loading) {
       <div class="loading">Cargando producto...</div>
-    } @else if (!product) {
+    } @else if (loadError || !product) {
       <div class="not-found">
         <h2>Producto no encontrado</h2>
+        <p>Este producto no está disponible o fue eliminado.</p>
         <a routerLink="/tienda" class="btn-back">Volver a la tienda</a>
       </div>
     } @else {
