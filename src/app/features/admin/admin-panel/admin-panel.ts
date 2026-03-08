@@ -128,6 +128,12 @@ export class AdminPanel implements OnInit {
       imageUrl: product.imageUrl,
     };
     this.clearFeedback();
+    // Scroll al editor para que sea visible en cualquier tamaño de pantalla
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        document.getElementById('product-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
   }
 
   cancelProductEdition(): void {
@@ -243,7 +249,7 @@ export class AdminPanel implements OnInit {
       if (this.productForm.category.trim() === category.name.trim()) {
         this.productForm = { ...this.productForm, category: '' };
       }
-      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
+      await Promise.all([this.loadCategories(), this.loadProducts(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
     } finally {
@@ -265,7 +271,7 @@ export class AdminPanel implements OnInit {
       await this.adminService.deleteAllCategories();
       this.statusMessage.set('Todas las categorías han sido movidas a la papelera.');
       this.productForm = { ...this.productForm, category: '' };
-      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
+      await Promise.all([this.loadCategories(), this.loadProducts(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron eliminar todas las categorías.'));
     } finally {
@@ -333,7 +339,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.restoreCategory(category.id);
       this.statusMessage.set(`Categoría "${category.name}" restaurada correctamente.`);
-      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
+      await Promise.all([this.loadCategories(), this.loadProducts(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la categoría.'));
     } finally {

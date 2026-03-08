@@ -573,6 +573,25 @@ details.trash-group[open] .trash-group-title::after {
   }
 }
 
+.category-deleted-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8f4e00;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+
+.option-deleted {
+  color: #8f4e00;
+  background: #fff7e6;
+}
+
 .category-list {
   display: grid;
   gap: 10px;
