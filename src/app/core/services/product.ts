@@ -149,36 +149,45 @@ export class ProductService {
     const rangeFrom = (page - 1) * ProductService.PAGE_SIZE;
     const rangeTo = page * ProductService.PAGE_SIZE - 1;
 
-    const applyFilters = (base: ReturnType<typeof supabase.from>) => {
-      let q = base
-        .select(ProductService.PRODUCT_SELECT, { count: 'exact' });
-      if (category) q = (q as any).eq('category', category);
-      if (search) q = (q as any).or(`name.ilike.%${search}%,description.ilike.%${search}%`);
-      return (q as any)
+    // Con filtro deleted_at — orden correcto: select() primero, is() después
+    if (this.deletedAtAvailable !== false) {
+      let q = supabase
+        .from('products')
+        .select(ProductService.PRODUCT_SELECT, { count: 'exact' })
+        .is('deleted_at', null);
+
+      if (category) q = q.eq('category', category);
+      if (search) q = q.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+
+      const { data, error, count } = await q
         .order('created_at', { ascending: false })
         .range(rangeFrom, rangeTo);
-    };
-
-    // Con filtro deleted_at
-    if (this.deletedAtAvailable !== false) {
-      const base = (supabase.from('products') as any).is('deleted_at', null);
-      const { data, error, count } = await applyFilters(base);
 
       if (!error) {
         this.deletedAtAvailable = true;
         return this.buildListResponse(data, count, page);
       }
 
-      if (this.isMissingDeletedAt((error as { message?: string }).message ?? '')) {
+      if (this.isMissingDeletedAt(error.message ?? '')) {
         this.deletedAtAvailable = false;
       } else {
-        throw new Error((error as { message?: string }).message || 'No se pudieron cargar los productos.');
+        throw new Error(error.message || 'No se pudieron cargar los productos.');
       }
     }
 
     // Sin filtro deleted_at (migración pendiente)
-    const { data, error, count } = await applyFilters(supabase.from('products'));
-    if (error) throw new Error((error as { message?: string }).message || 'No se pudieron cargar los productos.');
+    let qFallback = supabase
+      .from('products')
+      .select(ProductService.PRODUCT_SELECT, { count: 'exact' });
+
+    if (category) qFallback = qFallback.eq('category', category);
+    if (search) qFallback = qFallback.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+
+    const { data, error, count } = await qFallback
+      .order('created_at', { ascending: false })
+      .range(rangeFrom, rangeTo);
+
+    if (error) throw new Error(error.message || 'No se pudieron cargar los productos.');
     return this.buildListResponse(data, count, page);
   }
 
