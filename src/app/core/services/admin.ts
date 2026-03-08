@@ -31,6 +31,7 @@ type DbProductRow = {
   image_url: string | null;
   stock: number | null;
   created_at: string | null;
+  deleted_at: string | null;
 };
 
 type DbOrderRow = {
@@ -64,6 +65,7 @@ type DbServiceRequestRow = {
   email_error: string | null;
   user_id: string | null;
   created_at: string | null;
+  deleted_at: string | null;
 };
 
 type DbProductNameRow = {
@@ -77,17 +79,21 @@ type DbCategoryRow = {
   description: string | null;
   image_url: string | null;
   created_at: string | null;
+  deleted_at: string | null;
 };
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   constructor(private supabaseService: SupabaseService) {}
 
+  // ─── Productos activos ───────────────────────────────────────────────────
+
   async getProducts(): Promise<AdminProduct[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price, category, image_url, stock, created_at')
+      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -97,11 +103,33 @@ export class AdminService {
     return (data ?? []).map((row) => this.mapProduct(row as DbProductRow));
   }
 
+  async saveProduct(input: AdminProductInput, id?: string): Promise<AdminProduct> {
+    if (id) {
+      return this.updateProduct(id, input);
+    }
+    return this.insertProduct(input);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('products')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo mover el producto a la papelera.');
+    }
+  }
+
+  // ─── Categorías activas ──────────────────────────────────────────────────
+
   async getCategories(): Promise<AdminCategory[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, description, image_url, created_at')
+      .select('id, name, description, image_url, created_at, deleted_at')
+      .is('deleted_at', null)
       .order('name', { ascending: true });
 
     if (error) {
@@ -134,7 +162,7 @@ export class AdminService {
         description: input.description.trim() || null,
         image_url: input.imageUrl.trim() || null,
       })
-      .select('id, name, description, image_url, created_at')
+      .select('id, name, description, image_url, created_at, deleted_at')
       .single();
 
     if (error || !data) {
@@ -146,74 +174,82 @@ export class AdminService {
 
   async deleteCategory(categoryId: string): Promise<void> {
     const supabase = this.supabaseService.getClient();
-
-    const { data: categoryRow, error: categoryError } = await supabase
+    const { error } = await supabase
       .from('categories')
-      .select('id, name, created_at')
-      .eq('id', categoryId)
-      .maybeSingle();
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', categoryId);
 
-    if (categoryError) {
-      throw new Error(categoryError.message || 'No se pudo cargar la categoría.');
-    }
-    if (!categoryRow) {
-      throw new Error('La categoría ya no existe.');
-    }
-
-    const category = this.mapCategory(categoryRow as DbCategoryRow);
-    const categoryName = category.name.trim();
-
-    if (categoryName) {
-      const { error: clearError } = await supabase
-        .from('products')
-        .update({ category: null })
-        .eq('category', categoryName);
-
-      if (clearError) {
-        throw new Error(clearError.message || 'No se pudieron desvincular los productos de la categoría.');
-      }
-    }
-
-    const { error: deleteError } = await supabase.from('categories').delete().eq('id', categoryId);
-    if (deleteError) {
-      throw new Error(deleteError.message || 'No se pudo eliminar la categoría.');
+    if (error) {
+      throw new Error(error.message || 'No se pudo mover la categoría a la papelera.');
     }
   }
 
   async deleteAllCategories(): Promise<void> {
     const supabase = this.supabaseService.getClient();
-
-    const { error: clearError } = await supabase
-      .from('products')
-      .update({ category: null })
-      .neq('category', '');
-
-    if (clearError) {
-      throw new Error(clearError.message || 'No se pudieron desvincular los productos.');
-    }
-
-    const { error: deleteError } = await supabase.from('categories').delete().neq('name', '');
-
-    if (deleteError) {
-      throw new Error(deleteError.message || 'No se pudieron eliminar las categorías.');
-    }
-  }
-
-  async saveProduct(input: AdminProductInput, id?: string): Promise<AdminProduct> {
-    if (id) {
-      return this.updateProduct(id, input);
-    }
-    return this.insertProduct(input);
-  }
-
-  async deleteProduct(id: string): Promise<void> {
-    const supabase = this.supabaseService.getClient();
-    const { error } = await supabase.from('products').delete().eq('id', id);
+    const { error } = await supabase
+      .from('categories')
+      .update({ deleted_at: new Date().toISOString() })
+      .is('deleted_at', null);
 
     if (error) {
-      throw new Error(error.message || 'No se pudo eliminar el producto.');
+      throw new Error(error.message || 'No se pudieron mover las categorías a la papelera.');
     }
   }
+
+  // ─── Solicitudes activas ─────────────────────────────────────────────────
+
+  async getServiceRequests(): Promise<AdminServiceRequest[]> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select(
+        'id, service_type, nombre, correo_electronico, telefono_celular, comentario, payload, destination_email, email_sent, email_error, user_id, created_at, deleted_at',
+      )
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message || 'No se pudieron cargar las solicitudes de servicio.');
+    }
+
+    return (data ?? []).map((row) => this.mapServiceRequest(row as DbServiceRequestRow));
+  }
+
+  async deleteServiceRequest(requestId: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('service_requests')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo mover la solicitud a la papelera.');
+    }
+  }
+
+  async resendServiceRequestEmail(requestId: string, to?: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const destination = to?.trim();
+
+    const { data, error } = await supabase.functions.invoke('send-service-request-email', {
+      body: {
+        request_id: requestId,
+        ...(destination ? { to: destination } : {}),
+      },
+    });
+
+    if (error) {
+      const functionError = await this.extractFunctionError(error);
+      throw new Error(functionError || error.message || 'No se pudo reenviar el correo.');
+    }
+
+    const response = data as { ok?: boolean; error?: string } | null | undefined;
+    if (response?.ok === false) {
+      throw new Error(response.error?.trim() || 'No se pudo reenviar el correo.');
+    }
+  }
+
+  // ─── Compras ─────────────────────────────────────────────────────────────
 
   async getOrders(): Promise<AdminOrder[]> {
     const supabase = this.supabaseService.getClient();
@@ -299,52 +335,7 @@ export class AdminService {
     }));
   }
 
-  async getServiceRequests(): Promise<AdminServiceRequest[]> {
-    const supabase = this.supabaseService.getClient();
-    const { data, error } = await supabase
-      .from('service_requests')
-      .select(
-        'id, service_type, nombre, correo_electronico, telefono_celular, comentario, payload, destination_email, email_sent, email_error, user_id, created_at',
-      )
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(error.message || 'No se pudieron cargar las solicitudes de servicio.');
-    }
-
-    return (data ?? []).map((row) => this.mapServiceRequest(row as DbServiceRequestRow));
-  }
-
-  async deleteServiceRequest(requestId: string): Promise<void> {
-    const supabase = this.supabaseService.getClient();
-    const { error } = await supabase.from('service_requests').delete().eq('id', requestId);
-
-    if (error) {
-      throw new Error(error.message || 'No se pudo eliminar la solicitud.');
-    }
-  }
-
-  async resendServiceRequestEmail(requestId: string, to?: string): Promise<void> {
-    const supabase = this.supabaseService.getClient();
-    const destination = to?.trim();
-
-    const { data, error } = await supabase.functions.invoke('send-service-request-email', {
-      body: {
-        request_id: requestId,
-        ...(destination ? { to: destination } : {}),
-      },
-    });
-
-    if (error) {
-      const functionError = await this.extractFunctionError(error);
-      throw new Error(functionError || error.message || 'No se pudo reenviar el correo.');
-    }
-
-    const response = data as { ok?: boolean; error?: string } | null | undefined;
-    if (response?.ok === false) {
-      throw new Error(response.error?.trim() || 'No se pudo reenviar el correo.');
-    }
-  }
+  // ─── Información de la tienda ────────────────────────────────────────────
 
   async getStoreInfo(): Promise<StoreInfo | null> {
     const supabase = this.supabaseService.getClient();
@@ -369,6 +360,211 @@ export class AdminService {
     }
   }
 
+  // ─── Papelera: obtener eliminados ────────────────────────────────────────
+
+  async getDeletedProducts(): Promise<AdminProduct[]> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message || 'No se pudieron cargar los productos eliminados.');
+    }
+
+    return (data ?? []).map((row) => this.mapProduct(row as DbProductRow));
+  }
+
+  async getDeletedCategories(): Promise<AdminCategory[]> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, description, image_url, created_at, deleted_at')
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message || 'No se pudieron cargar las categorías eliminadas.');
+    }
+
+    return (data ?? []).map((row) => this.mapCategory(row as DbCategoryRow));
+  }
+
+  async getDeletedServiceRequests(): Promise<AdminServiceRequest[]> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select(
+        'id, service_type, nombre, correo_electronico, telefono_celular, comentario, payload, destination_email, email_sent, email_error, user_id, created_at, deleted_at',
+      )
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message || 'No se pudieron cargar las solicitudes eliminadas.');
+    }
+
+    return (data ?? []).map((row) => this.mapServiceRequest(row as DbServiceRequestRow));
+  }
+
+  // ─── Papelera: restaurar ─────────────────────────────────────────────────
+
+  async restoreProduct(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('products')
+      .update({ deleted_at: null })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo restaurar el producto.');
+    }
+  }
+
+  async restoreCategory(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('categories')
+      .update({ deleted_at: null })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo restaurar la categoría.');
+    }
+  }
+
+  async restoreServiceRequest(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('service_requests')
+      .update({ deleted_at: null })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo restaurar la solicitud.');
+    }
+  }
+
+  // ─── Papelera: eliminar permanentemente ─────────────────────────────────
+
+  async permanentlyDeleteProduct(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+
+    // Desvincula order_items antes del delete para evitar violación FK
+    // (si ya aplicaste la migración con ON DELETE SET NULL esto es redundante pero no hace daño)
+    await supabase.from('order_items').update({ product_id: null }).eq('product_id', id);
+
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) {
+      throw new Error(error.message || 'No se pudo eliminar permanentemente el producto.');
+    }
+  }
+
+  async permanentlyDeleteCategory(categoryId: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+
+    const { data: categoryRow } = await supabase
+      .from('categories')
+      .select('id, name')
+      .eq('id', categoryId)
+      .maybeSingle();
+
+    if (categoryRow) {
+      const categoryName = (categoryRow as { name: string }).name?.trim();
+      if (categoryName) {
+        await supabase.from('products').update({ category: null }).eq('category', categoryName);
+      }
+    }
+
+    const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+    if (error) {
+      throw new Error(error.message || 'No se pudo eliminar permanentemente la categoría.');
+    }
+  }
+
+  async permanentlyDeleteServiceRequest(id: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase.from('service_requests').delete().eq('id', id);
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo eliminar permanentemente la solicitud.');
+    }
+  }
+
+  async emptyTrash(): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+
+    const [p, c, s] = await Promise.all([
+      supabase.from('products').delete().not('deleted_at', 'is', null),
+      supabase.from('categories').delete().not('deleted_at', 'is', null),
+      supabase.from('service_requests').delete().not('deleted_at', 'is', null),
+    ]);
+
+    if (p.error) throw new Error(p.error.message || 'No se pudieron eliminar los productos.');
+    if (c.error) throw new Error(c.error.message || 'No se pudieron eliminar las categorías.');
+    if (s.error) throw new Error(s.error.message || 'No se pudieron eliminar las solicitudes.');
+  }
+
+  // ─── Exportación de datos ────────────────────────────────────────────────
+
+  getProductsExportData(products: AdminProduct[]): { headers: string[]; rows: (string | number)[][] } {
+    return {
+      headers: ['ID', 'Nombre', 'Descripción', 'Precio (MXN)', 'Categoría', 'Stock', 'Fecha creación'],
+      rows: products.map((p) => [
+        p.id,
+        p.name,
+        p.description || '',
+        p.price,
+        p.category || 'Sin categoría',
+        p.stock,
+        p.createdAt || '',
+      ]),
+    };
+  }
+
+  getCategoriesExportData(categories: AdminCategory[]): { headers: string[]; rows: (string | number)[][] } {
+    return {
+      headers: ['ID', 'Nombre', 'Descripción', 'Fecha creación'],
+      rows: categories.map((c) => [c.id, c.name, c.description || '', c.createdAt || '']),
+    };
+  }
+
+  getOrdersExportData(orders: AdminOrder[]): { headers: string[]; rows: (string | number)[][] } {
+    return {
+      headers: ['ID', 'Usuario', 'Total (MXN)', 'Estado', 'Método de pago', 'Fecha', 'Productos'],
+      rows: orders.map((o) => [
+        o.id,
+        o.userId || 'N/A',
+        o.totalAmount,
+        o.status,
+        o.paymentMethod,
+        o.createdAt || '',
+        o.items.map((i) => `${i.productName} x${i.quantity}`).join('; '),
+      ]),
+    };
+  }
+
+  getServiceRequestsExportData(
+    requests: AdminServiceRequest[],
+  ): { headers: string[]; rows: (string | number)[][] } {
+    return {
+      headers: ['ID', 'Servicio', 'Nombre', 'Correo', 'Teléfono', 'Estado correo', 'Fecha'],
+      rows: requests.map((r) => [
+        r.id,
+        r.serviceType,
+        r.nombre,
+        r.correoElectronico || '',
+        r.telefonoCelular || '',
+        r.emailSent ? 'Enviado' : r.emailError ? 'Error' : 'Pendiente',
+        r.createdAt || '',
+      ]),
+    };
+  }
+
+  // ─── Privados ────────────────────────────────────────────────────────────
+
   private async insertProduct(input: AdminProductInput): Promise<AdminProduct> {
     const supabase = this.supabaseService.getClient();
     const payload = this.toProductPayload(input);
@@ -376,11 +572,11 @@ export class AdminService {
     const { data, error } = await supabase
       .from('products')
       .insert(payload)
-      .select('id, name, description, price, category, image_url, stock, created_at')
+      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
       .single();
 
     if (error || !data) {
-      throw new Error(error?.message || 'No se pudo crear the product.');
+      throw new Error(error?.message || 'No se pudo crear el producto.');
     }
 
     return this.mapProduct(data as DbProductRow);
@@ -394,7 +590,7 @@ export class AdminService {
       .from('products')
       .update(payload)
       .eq('id', id)
-      .select('id, name, description, price, category, image_url, stock, created_at')
+      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
       .single();
 
     if (error || !data) {
@@ -434,6 +630,7 @@ export class AdminService {
       stock: this.toNumber(row.stock, 0),
       imageUrl: row.image_url ?? '',
       createdAt: row.created_at,
+      deletedAt: row.deleted_at ?? null,
     };
   }
 
@@ -444,6 +641,7 @@ export class AdminService {
       description: row.description ?? '',
       imageUrl: row.image_url ?? '',
       createdAt: row.created_at,
+      deletedAt: row.deleted_at ?? null,
     };
   }
 
@@ -461,6 +659,7 @@ export class AdminService {
       emailError: row.email_error,
       userId: row.user_id,
       createdAt: row.created_at,
+      deletedAt: row.deleted_at ?? null,
     };
   }
 

@@ -28,6 +28,10 @@
       <span>Solicitudes</span>
       <strong>{{ metrics().requests }}</strong>
     </article>
+    <article class="metric-card metric-card--trash" (click)="selectTab('papelera')" style="cursor:pointer">
+      <span>Papelera</span>
+      <strong>{{ trashCount() }}</strong>
+    </article>
   </section>
 
   <nav class="admin-tabs">
@@ -46,6 +50,13 @@
     <button type="button" [class.active]="activeTab() === 'ubicacion'" (click)="selectTab('ubicacion')">
       Ubicación
     </button>
+    <button type="button" class="tab-trash" [class.active]="activeTab() === 'papelera'" (click)="selectTab('papelera')">
+      <i class="fas fa-trash-can"></i>
+      Papelera
+      @if (trashCount() > 0) {
+        <span class="trash-badge">{{ trashCount() }}</span>
+      }
+    </button>
   </nav>
 
   @if (statusMessage()) {
@@ -55,7 +66,21 @@
     <div class="feedback error">{{ errorMessage() }}</div>
   }
 
+  <!-- ── PRODUCTOS ───────────────────────────────────────────────────── -->
   @if (activeTab() === 'productos') {
+    <div class="tab-export-bar">
+      <span class="export-label"><i class="fas fa-download"></i> Exportar productos:</span>
+      <button type="button" class="btn-export csv" [disabled]="exportingFormat() !== null" (click)="exportTab('csv')">
+        @if (exportingFormat() === 'csv') { ... } @else { CSV }
+      </button>
+      <button type="button" class="btn-export excel" [disabled]="exportingFormat() !== null" (click)="exportTab('excel')">
+        @if (exportingFormat() === 'excel') { ... } @else { Excel }
+      </button>
+      <button type="button" class="btn-export pdf" [disabled]="exportingFormat() !== null" (click)="exportTab('pdf')">
+        @if (exportingFormat() === 'pdf') { ... } @else { PDF }
+      </button>
+    </div>
+
     <section class="products-layout">
       <article class="editor-card">
         <h2>{{ editingProductId ? 'Editar producto' : 'Nuevo producto' }}</h2>
@@ -134,7 +159,9 @@
                     <td>{{ product.stock }}</td>
                     <td class="actions">
                       <button type="button" class="btn-inline" (click)="editProduct(product)">Editar</button>
-                      <button type="button" class="btn-inline danger" (click)="deleteProduct(product)">Eliminar</button>
+                      <button type="button" class="btn-inline danger" (click)="deleteProduct(product)">
+                        <i class="fas fa-trash-can"></i>
+                      </button>
                     </td>
                   </tr>
                 }
@@ -146,14 +173,28 @@
     </section>
   }
 
+  <!-- ── CATEGORÍAS ──────────────────────────────────────────────────── -->
   @if (activeTab() === 'categorias') {
+    <div class="tab-export-bar">
+      <span class="export-label"><i class="fas fa-download"></i> Exportar categorías:</span>
+      <button type="button" class="btn-export csv" [disabled]="exportingFormat() !== null" (click)="exportTab('csv')">
+        @if (exportingFormat() === 'csv') { ... } @else { CSV }
+      </button>
+      <button type="button" class="btn-export excel" [disabled]="exportingFormat() !== null" (click)="exportTab('excel')">
+        @if (exportingFormat() === 'excel') { ... } @else { Excel }
+      </button>
+      <button type="button" class="btn-export pdf" [disabled]="exportingFormat() !== null" (click)="exportTab('pdf')">
+        @if (exportingFormat() === 'pdf') { ... } @else { PDF }
+      </button>
+    </div>
+
     <section class="card-list">
       <article class="content-card">
         <header style="display: flex; justify-content: space-between; align-items: center;">
           <h3>Categorías de productos</h3>
           @if (categories().length > 0) {
             <button type="button" class="btn-inline danger" (click)="deleteAllCategories()" [disabled]="categoriesLoading()">
-              <i class="fas fa-trash-sweep"></i> Borrar todas las categorías
+              <i class="fas fa-trash-can"></i> Mover todas a papelera
             </button>
           }
         </header>
@@ -209,7 +250,7 @@
                     <td>{{ category.description || 'Sin descripción' }}</td>
                     <td class="actions">
                       <button type="button" class="btn-inline danger" [disabled]="deletingCategoryId() === category.id" (click)="deleteCategory(category)">
-                        @if (deletingCategoryId() === category.id) { ... } @else { Eliminar }
+                        @if (deletingCategoryId() === category.id) { ... } @else { <i class="fas fa-trash-can"></i> }
                       </button>
                     </td>
                   </tr>
@@ -222,7 +263,21 @@
     </section>
   }
 
+  <!-- ── COMPRAS ─────────────────────────────────────────────────────── -->
   @if (activeTab() === 'compras') {
+    <div class="tab-export-bar">
+      <span class="export-label"><i class="fas fa-download"></i> Exportar compras:</span>
+      <button type="button" class="btn-export csv" [disabled]="exportingFormat() !== null" (click)="exportTab('csv')">
+        @if (exportingFormat() === 'csv') { ... } @else { CSV }
+      </button>
+      <button type="button" class="btn-export excel" [disabled]="exportingFormat() !== null" (click)="exportTab('excel')">
+        @if (exportingFormat() === 'excel') { ... } @else { Excel }
+      </button>
+      <button type="button" class="btn-export pdf" [disabled]="exportingFormat() !== null" (click)="exportTab('pdf')">
+        @if (exportingFormat() === 'pdf') { ... } @else { PDF }
+      </button>
+    </div>
+
     <section class="card-list">
       @if (ordersLoading()) {
         <div class="empty-state">Cargando compras...</div>
@@ -259,7 +314,21 @@
     </section>
   }
 
+  <!-- ── SOLICITUDES ────────────────────────────────────────────────── -->
   @if (activeTab() === 'solicitudes') {
+    <div class="tab-export-bar">
+      <span class="export-label"><i class="fas fa-download"></i> Exportar solicitudes:</span>
+      <button type="button" class="btn-export csv" [disabled]="exportingFormat() !== null" (click)="exportTab('csv')">
+        @if (exportingFormat() === 'csv') { ... } @else { CSV }
+      </button>
+      <button type="button" class="btn-export excel" [disabled]="exportingFormat() !== null" (click)="exportTab('excel')">
+        @if (exportingFormat() === 'excel') { ... } @else { Excel }
+      </button>
+      <button type="button" class="btn-export pdf" [disabled]="exportingFormat() !== null" (click)="exportTab('pdf')">
+        @if (exportingFormat() === 'pdf') { ... } @else { PDF }
+      </button>
+    </div>
+
     <section class="card-list">
       @if (requestsLoading()) {
         <div class="empty-state">Cargando solicitudes...</div>
@@ -301,7 +370,7 @@
                 @if (resendingRequestId() === request.id) { Reenviando... } @else { Reenviar correo }
               </button>
               <button type="button" class="btn-danger" [disabled]="deletingRequestId() === request.id" (click)="deleteServiceRequest(request)">
-                @if (deletingRequestId() === request.id) { Eliminando... } @else { Eliminar }
+                @if (deletingRequestId() === request.id) { Moviendo... } @else { <i class="fas fa-trash-can"></i> Papelera }
               </button>
             </div>
           </article>
@@ -310,6 +379,7 @@
     </section>
   }
 
+  <!-- ── UBICACIÓN ──────────────────────────────────────────────────── -->
   @if (activeTab() === 'ubicacion') {
     <section class="card-list">
       <article class="content-card">
@@ -369,6 +439,177 @@
           </form>
         }
       </article>
+    </section>
+  }
+
+  <!-- ── PAPELERA ───────────────────────────────────────────────────── -->
+  @if (activeTab() === 'papelera') {
+    <section class="trash-section">
+      <div class="trash-header">
+        <div>
+          <h2 class="trash-title">
+            <i class="fas fa-trash-can"></i> Papelera
+            @if (trashCount() > 0) {
+              <span class="trash-total-badge">{{ trashCount() }} elemento{{ trashCount() === 1 ? '' : 's' }}</span>
+            }
+          </h2>
+          <p class="trash-subtitle">Los elementos eliminados se guardan aquí. Puedes restaurarlos o eliminarlos permanentemente.</p>
+        </div>
+        @if (trashCount() > 0) {
+          <button type="button" class="btn-empty-trash" [disabled]="trashLoading()" (click)="emptyTrash()">
+            @if (trashLoading()) {
+              <i class="fas fa-spinner fa-spin"></i> Vaciando...
+            } @else {
+              <i class="fas fa-trash-can"></i> Vaciar papelera
+            }
+          </button>
+        }
+      </div>
+
+      @if (trashLoading() && trashCount() === 0) {
+        <div class="empty-state">Cargando papelera...</div>
+      } @else if (trashCount() === 0) {
+        <div class="trash-empty">
+          <i class="fas fa-trash-can" style="font-size: 40px; color: #c0cbe8; display:block; margin-bottom: 10px;"></i>
+          <strong>La papelera está vacía</strong>
+          <p>Los elementos que elimines aparecerán aquí.</p>
+        </div>
+      } @else {
+
+        <!-- Productos eliminados -->
+        @if (deletedProducts().length > 0) {
+          <details class="trash-group" open>
+            <summary class="trash-group-title">
+              <i class="fas fa-box"></i> Productos ({{ deletedProducts().length }})
+            </summary>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Categoría</th>
+                    <th>Eliminado el</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (product of deletedProducts(); track product.id) {
+                    <tr class="trash-row">
+                      <td>
+                        <strong>{{ product.name }}</strong>
+                        <p>{{ product.description || 'Sin descripción' }}</p>
+                      </td>
+                      <td>{{ product.price | currency:'MXN':'symbol-narrow' }}</td>
+                      <td>{{ product.category || 'Sin categoría' }}</td>
+                      <td>{{ product.deletedAt ? (product.deletedAt | date:'short') : '—' }}</td>
+                      <td class="actions">
+                        <button type="button" class="btn-restore" [disabled]="restoringId() === product.id" (click)="restoreProduct(product)">
+                          @if (restoringId() === product.id) { ... } @else {
+                            <i class="fas fa-rotate-left"></i> Restaurar
+                          }
+                        </button>
+                        <button type="button" class="btn-inline danger" [disabled]="permanentDeletingId() === product.id" (click)="permanentlyDeleteProduct(product)">
+                          @if (permanentDeletingId() === product.id) { ... } @else {
+                            <i class="fas fa-xmark"></i>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
+
+        <!-- Categorías eliminadas -->
+        @if (deletedCategories().length > 0) {
+          <details class="trash-group" open>
+            <summary class="trash-group-title">
+              <i class="fas fa-tag"></i> Categorías ({{ deletedCategories().length }})
+            </summary>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Eliminado el</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (category of deletedCategories(); track category.id) {
+                    <tr class="trash-row">
+                      <td><strong>{{ category.name }}</strong></td>
+                      <td>{{ category.description || 'Sin descripción' }}</td>
+                      <td>{{ category.deletedAt ? (category.deletedAt | date:'short') : '—' }}</td>
+                      <td class="actions">
+                        <button type="button" class="btn-restore" [disabled]="restoringId() === category.id" (click)="restoreCategory(category)">
+                          @if (restoringId() === category.id) { ... } @else {
+                            <i class="fas fa-rotate-left"></i> Restaurar
+                          }
+                        </button>
+                        <button type="button" class="btn-inline danger" [disabled]="permanentDeletingId() === category.id" (click)="permanentlyDeleteCategory(category)">
+                          @if (permanentDeletingId() === category.id) { ... } @else {
+                            <i class="fas fa-xmark"></i>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
+
+        <!-- Solicitudes eliminadas -->
+        @if (deletedServiceRequests().length > 0) {
+          <details class="trash-group" open>
+            <summary class="trash-group-title">
+              <i class="fas fa-file-lines"></i> Solicitudes de servicio ({{ deletedServiceRequests().length }})
+            </summary>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Servicio</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Eliminado el</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (request of deletedServiceRequests(); track request.id) {
+                    <tr class="trash-row">
+                      <td>{{ serviceLabel(request.serviceType) }}</td>
+                      <td><strong>{{ request.nombre }}</strong></td>
+                      <td>{{ request.correoElectronico || 'N/A' }}</td>
+                      <td>{{ request.deletedAt ? (request.deletedAt | date:'short') : '—' }}</td>
+                      <td class="actions">
+                        <button type="button" class="btn-restore" [disabled]="restoringId() === request.id" (click)="restoreServiceRequest(request)">
+                          @if (restoringId() === request.id) { ... } @else {
+                            <i class="fas fa-rotate-left"></i> Restaurar
+                          }
+                        </button>
+                        <button type="button" class="btn-inline danger" [disabled]="permanentDeletingId() === request.id" (click)="permanentlyDeleteServiceRequest(request)">
+                          @if (permanentDeletingId() === request.id) { ... } @else {
+                            <i class="fas fa-xmark"></i>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
+
+      }
     </section>
   }
 

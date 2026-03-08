@@ -341,6 +341,238 @@ td p {
   margin-bottom: 14px;
 }
 
+// ── Export bar ──────────────────────────────────────────────────────────────
+
+.tab-export-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #f4f7ff;
+  border: 1px solid #d4e0ff;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.export-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3a5499;
+  margin-right: 4px;
+}
+
+.btn-export {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &.csv {
+    background: #e4f5e8;
+    color: #1a6b32;
+  }
+
+  &.excel {
+    background: #d8f0e0;
+    color: #0e5c28;
+  }
+
+  &.pdf {
+    background: #fde9e9;
+    color: #8f1f1f;
+  }
+}
+
+// ── Papelera ─────────────────────────────────────────────────────────────────
+
+.metric-card--trash {
+  border-color: #fdd0d0;
+
+  span { color: #8f3030; }
+  strong { color: #7a1e1e; }
+
+  &:hover {
+    background: #fff5f5;
+  }
+}
+
+.tab-trash {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trash-badge {
+  background: #d63030;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  line-height: 1.4;
+}
+
+.trash-section {
+  display: grid;
+  gap: 14px;
+}
+
+.trash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trash-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #173a80;
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.trash-total-badge {
+  background: #fde8e8;
+  color: #8f1f1f;
+  border: 1px solid #f6c0c0;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+}
+
+.trash-subtitle {
+  color: #5d729f;
+  font-size: 14px;
+  margin: 0;
+}
+
+.btn-empty-trash {
+  border: 0;
+  background: #fde8e8;
+  color: #8f1f1f;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #fcc;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.trash-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6074a3;
+  border: 1px dashed #c9d7f0;
+  border-radius: 14px;
+
+  strong {
+    display: block;
+    font-size: 16px;
+    color: #3a5499;
+    margin-bottom: 6px;
+  }
+
+  p { margin: 0; font-size: 14px; }
+}
+
+.trash-group {
+  background: #fff;
+  border: 1px solid #d9e2f5;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  &[open] > .trash-group-title {
+    border-bottom: 1px solid #e8ecf6;
+  }
+}
+
+.trash-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #173a80;
+  cursor: pointer;
+  list-style: none;
+  background: #f8faff;
+
+  &::-webkit-details-marker { display: none; }
+
+  &::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-left: auto;
+    font-size: 11px;
+    color: #6a84bf;
+    transition: transform 0.2s;
+  }
+}
+
+details.trash-group[open] .trash-group-title::after {
+  transform: rotate(180deg);
+}
+
+.trash-group .table-wrapper {
+  padding: 0 16px 16px;
+}
+
+.trash-row {
+  opacity: 0.85;
+
+  td { color: #5a6e9c; }
+  strong { color: #2a3f70; }
+}
+
+.btn-restore {
+  border: 0;
+  background: #e6f5ec;
+  color: #1a6b32;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  &:hover:not(:disabled) {
+    background: #c8edd5;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .category-list {
   display: grid;
   gap: 10px;

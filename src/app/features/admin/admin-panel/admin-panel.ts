@@ -10,8 +10,10 @@ import {
   AdminServiceRequest,
 } from '../../../core/models/admin';
 import { AdminService, StoreInfo } from '../../../core/services/admin';
+import { ExportService } from '../../../core/services/export';
 
-type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicacion';
+type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicacion' | 'papelera';
+type ExportFormat = 'csv' | 'excel' | 'pdf';
 
 @Component({
   selector: 'app-admin-panel',
@@ -22,6 +24,7 @@ type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicac
 })
 export class AdminPanel implements OnInit {
   private adminService = inject(AdminService);
+  private exportService = inject(ExportService);
 
   readonly activeTab = signal<AdminTab>('productos');
   readonly products = signal<AdminProduct[]>([]);
@@ -30,17 +33,26 @@ export class AdminPanel implements OnInit {
   readonly serviceRequests = signal<AdminServiceRequest[]>([]);
   readonly storeInfo = signal<StoreInfo | null>(null);
 
+  // Papelera
+  readonly deletedProducts = signal<AdminProduct[]>([]);
+  readonly deletedCategories = signal<AdminCategory[]>([]);
+  readonly deletedServiceRequests = signal<AdminServiceRequest[]>([]);
+
   readonly productsLoading = signal(false);
   readonly categoriesLoading = signal(false);
   readonly ordersLoading = signal(false);
   readonly requestsLoading = signal(false);
   readonly storeInfoLoading = signal(false);
+  readonly trashLoading = signal(false);
   readonly savingProduct = signal(false);
   readonly savingCategory = signal(false);
   readonly savingStoreInfo = signal(false);
   readonly deletingCategoryId = signal<string | null>(null);
   readonly resendingRequestId = signal<string | null>(null);
   readonly deletingRequestId = signal<string | null>(null);
+  readonly restoringId = signal<string | null>(null);
+  readonly permanentDeletingId = signal<string | null>(null);
+  readonly exportingFormat = signal<ExportFormat | null>(null);
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
 
@@ -48,6 +60,13 @@ export class AdminPanel implements OnInit {
   productForm: AdminProductInput = this.emptyProductForm();
   categoryForm: AdminCategoryInput = this.emptyCategoryForm();
   storeForm: StoreInfo = this.emptyStoreForm();
+
+  readonly trashCount = computed(
+    () =>
+      this.deletedProducts().length +
+      this.deletedCategories().length +
+      this.deletedServiceRequests().length,
+  );
 
   readonly metrics = computed(() => ({
     products: this.products().length,
@@ -63,6 +82,7 @@ export class AdminPanel implements OnInit {
       this.loadOrders(),
       this.loadServiceRequests(),
       this.loadStoreInfo(),
+      this.loadTrash(),
     ]);
   }
 
@@ -88,8 +108,14 @@ export class AdminPanel implements OnInit {
       await this.loadStoreInfo();
       return;
     }
+    if (this.activeTab() === 'papelera') {
+      await this.loadTrash();
+      return;
+    }
     await this.loadServiceRequests();
   }
+
+  // ─── Productos ───────────────────────────────────────────────────────────
 
   editProduct(product: AdminProduct): void {
     this.editingProductId = product.id;
@@ -152,6 +178,28 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  async deleteProduct(product: AdminProduct): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Mover "${product.name}" a la papelera? Podrás restaurarlo desde la pestaña Papelera.`)
+      : false;
+
+    if (!accepted) return;
+
+    this.clearFeedback();
+    try {
+      await this.adminService.deleteProduct(product.id);
+      this.statusMessage.set('Producto movido a la papelera.');
+      if (this.editingProductId === product.id) {
+        this.resetProductForm();
+      }
+      await Promise.all([this.loadProducts(), this.loadTrash()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
+    }
+  }
+
+  // ─── Categorías ──────────────────────────────────────────────────────────
+
   async saveCategory(): Promise<void> {
     const name = this.categoryForm.name.trim();
     if (!name) {
@@ -181,7 +229,7 @@ export class AdminPanel implements OnInit {
 
   async deleteCategory(category: AdminCategory): Promise<void> {
     const accepted = typeof window !== 'undefined'
-      ? window.confirm(`¿Eliminar la categoría "${category.name}"? Los productos asociados quedarán sin categoría.`)
+      ? window.confirm(`¿Mover "${category.name}" a la papelera? Podrás restaurarla desde la pestaña Papelera.`)
       : false;
 
     if (!accepted) return;
@@ -191,11 +239,11 @@ export class AdminPanel implements OnInit {
 
     try {
       await this.adminService.deleteCategory(category.id);
-      this.statusMessage.set('Categoría eliminada correctamente.');
+      this.statusMessage.set('Categoría movida a la papelera.');
       if (this.productForm.category.trim() === category.name.trim()) {
         this.productForm = { ...this.productForm, category: '' };
       }
-      await Promise.all([this.loadCategories(), this.loadProducts()]);
+      await Promise.all([this.loadCategories(), this.loadTrash()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
     } finally {
@@ -205,7 +253,7 @@ export class AdminPanel implements OnInit {
 
   async deleteAllCategories(): Promise<void> {
     const accepted = typeof window !== 'undefined'
-      ? window.confirm('¿ELIMINAR TODAS LAS CATEGORÍAS? Esta acción desvinculará todos los productos y no se puede deshacer.')
+      ? window.confirm('¿Mover TODAS LAS CATEGORÍAS a la papelera? Podrás restaurarlas desde la pestaña Papelera.')
       : false;
 
     if (!accepted) return;
@@ -215,9 +263,9 @@ export class AdminPanel implements OnInit {
 
     try {
       await this.adminService.deleteAllCategories();
-      this.statusMessage.set('Todas las categorías han sido eliminadas.');
+      this.statusMessage.set('Todas las categorías han sido movidas a la papelera.');
       this.productForm = { ...this.productForm, category: '' };
-      await Promise.all([this.loadCategories(), this.loadProducts()]);
+      await Promise.all([this.loadCategories(), this.loadTrash()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron eliminar todas las categorías.'));
     } finally {
@@ -225,29 +273,11 @@ export class AdminPanel implements OnInit {
     }
   }
 
-  async deleteProduct(product: AdminProduct): Promise<void> {
-    const accepted = typeof window !== 'undefined'
-      ? window.confirm(`¿Eliminar "${product.name}"? Esta acción no se puede deshacer.`)
-      : false;
-
-    if (!accepted) return;
-
-    this.clearFeedback();
-    try {
-      await this.adminService.deleteProduct(product.id);
-      this.statusMessage.set('Producto eliminado correctamente.');
-      if (this.editingProductId === product.id) {
-        this.resetProductForm();
-      }
-      await this.loadProducts();
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
-    }
-  }
+  // ─── Solicitudes ─────────────────────────────────────────────────────────
 
   async deleteServiceRequest(request: AdminServiceRequest): Promise<void> {
     const accepted = typeof window !== 'undefined'
-      ? window.confirm(`¿Eliminar la solicitud de "${request.nombre}"? Esta acción no se puede deshacer.`)
+      ? window.confirm(`¿Mover la solicitud de "${request.nombre}" a la papelera?`)
       : false;
 
     if (!accepted) return;
@@ -257,8 +287,8 @@ export class AdminPanel implements OnInit {
 
     try {
       await this.adminService.deleteServiceRequest(request.id);
-      this.statusMessage.set('Solicitud eliminada correctamente.');
-      await this.loadServiceRequests();
+      this.statusMessage.set('Solicitud movida a la papelera.');
+      await Promise.all([this.loadServiceRequests(), this.loadTrash()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la solicitud.'));
     } finally {
@@ -281,6 +311,166 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  // ─── Papelera ────────────────────────────────────────────────────────────
+
+  async restoreProduct(product: AdminProduct): Promise<void> {
+    this.clearFeedback();
+    this.restoringId.set(product.id);
+    try {
+      await this.adminService.restoreProduct(product.id);
+      this.statusMessage.set(`"${product.name}" restaurado correctamente.`);
+      await Promise.all([this.loadProducts(), this.loadTrash()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar el producto.'));
+    } finally {
+      this.restoringId.set(null);
+    }
+  }
+
+  async restoreCategory(category: AdminCategory): Promise<void> {
+    this.clearFeedback();
+    this.restoringId.set(category.id);
+    try {
+      await this.adminService.restoreCategory(category.id);
+      this.statusMessage.set(`Categoría "${category.name}" restaurada correctamente.`);
+      await Promise.all([this.loadCategories(), this.loadTrash()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la categoría.'));
+    } finally {
+      this.restoringId.set(null);
+    }
+  }
+
+  async restoreServiceRequest(request: AdminServiceRequest): Promise<void> {
+    this.clearFeedback();
+    this.restoringId.set(request.id);
+    try {
+      await this.adminService.restoreServiceRequest(request.id);
+      this.statusMessage.set(`Solicitud de "${request.nombre}" restaurada correctamente.`);
+      await Promise.all([this.loadServiceRequests(), this.loadTrash()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la solicitud.'));
+    } finally {
+      this.restoringId.set(null);
+    }
+  }
+
+  async permanentlyDeleteProduct(product: AdminProduct): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar permanentemente "${product.name}"? Esta acción no se puede deshacer.`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.permanentDeletingId.set(product.id);
+    try {
+      await this.adminService.permanentlyDeleteProduct(product.id);
+      this.statusMessage.set('Producto eliminado permanentemente.');
+      await this.loadTrash();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
+    } finally {
+      this.permanentDeletingId.set(null);
+    }
+  }
+
+  async permanentlyDeleteCategory(category: AdminCategory): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar permanentemente "${category.name}"? Los productos asociados quedarán sin categoría.`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.permanentDeletingId.set(category.id);
+    try {
+      await this.adminService.permanentlyDeleteCategory(category.id);
+      this.statusMessage.set('Categoría eliminada permanentemente.');
+      await Promise.all([this.loadProducts(), this.loadTrash()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
+    } finally {
+      this.permanentDeletingId.set(null);
+    }
+  }
+
+  async permanentlyDeleteServiceRequest(request: AdminServiceRequest): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar permanentemente la solicitud de "${request.nombre}"? Esta acción no se puede deshacer.`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.permanentDeletingId.set(request.id);
+    try {
+      await this.adminService.permanentlyDeleteServiceRequest(request.id);
+      this.statusMessage.set('Solicitud eliminada permanentemente.');
+      await this.loadTrash();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la solicitud.'));
+    } finally {
+      this.permanentDeletingId.set(null);
+    }
+  }
+
+  async emptyTrash(): Promise<void> {
+    if (this.trashCount() === 0) return;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Vaciar la papelera? Se eliminarán permanentemente ${this.trashCount()} elementos. Esta acción no se puede deshacer.`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.trashLoading.set(true);
+    try {
+      await this.adminService.emptyTrash();
+      this.statusMessage.set('Papelera vaciada correctamente.');
+      await this.loadTrash();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo vaciar la papelera.'));
+    } finally {
+      this.trashLoading.set(false);
+    }
+  }
+
+  // ─── Exportación ─────────────────────────────────────────────────────────
+
+  async exportTab(format: ExportFormat): Promise<void> {
+    this.clearFeedback();
+    this.exportingFormat.set(format);
+
+    try {
+      const tab = this.activeTab();
+      const dateStr = new Date().toISOString().slice(0, 10);
+
+      if (tab === 'productos') {
+        const { headers, rows } = this.adminService.getProductsExportData(this.products());
+        await this.runExport(format, `productos_${dateStr}`, 'Productos', headers, rows);
+      } else if (tab === 'categorias') {
+        const { headers, rows } = this.adminService.getCategoriesExportData(this.categories());
+        await this.runExport(format, `categorias_${dateStr}`, 'Categorías', headers, rows);
+      } else if (tab === 'compras') {
+        const { headers, rows } = this.adminService.getOrdersExportData(this.orders());
+        await this.runExport(format, `compras_${dateStr}`, 'Compras', headers, rows);
+      } else if (tab === 'solicitudes') {
+        const { headers, rows } = this.adminService.getServiceRequestsExportData(this.serviceRequests());
+        await this.runExport(format, `solicitudes_${dateStr}`, 'Solicitudes', headers, rows);
+      }
+
+      this.statusMessage.set('Archivo exportado correctamente.');
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo exportar el archivo.'));
+    } finally {
+      this.exportingFormat.set(null);
+    }
+  }
+
+  canExportCurrentTab(): boolean {
+    const tab = this.activeTab();
+    return tab === 'productos' || tab === 'categorias' || tab === 'compras' || tab === 'solicitudes';
+  }
+
+  // ─── Tienda ──────────────────────────────────────────────────────────────
+
   async saveStoreInfo(): Promise<void> {
     this.savingStoreInfo.set(true);
     this.clearFeedback();
@@ -295,6 +485,8 @@ export class AdminPanel implements OnInit {
       this.savingStoreInfo.set(false);
     }
   }
+
+  // ─── Helpers de vista ────────────────────────────────────────────────────
 
   serviceLabel(type: string): string {
     if (type === 'planes') return 'Planes de Internet';
@@ -319,6 +511,8 @@ export class AdminPanel implements OnInit {
       value: value === null ? 'null' : typeof value === 'string' ? value : JSON.stringify(value),
     }));
   }
+
+  // ─── Carga de datos ──────────────────────────────────────────────────────
 
   private async loadProducts(): Promise<void> {
     this.productsLoading.set(true);
@@ -374,6 +568,40 @@ export class AdminPanel implements OnInit {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo cargar la información de la tienda.'));
     } finally {
       this.storeInfoLoading.set(false);
+    }
+  }
+
+  private async loadTrash(): Promise<void> {
+    this.trashLoading.set(true);
+    try {
+      const [products, categories, requests] = await Promise.all([
+        this.adminService.getDeletedProducts(),
+        this.adminService.getDeletedCategories(),
+        this.adminService.getDeletedServiceRequests(),
+      ]);
+      this.deletedProducts.set(products);
+      this.deletedCategories.set(categories);
+      this.deletedServiceRequests.set(requests);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo cargar la papelera.'));
+    } finally {
+      this.trashLoading.set(false);
+    }
+  }
+
+  private async runExport(
+    format: ExportFormat,
+    filename: string,
+    title: string,
+    headers: string[],
+    rows: (string | number)[][],
+  ): Promise<void> {
+    if (format === 'csv') {
+      this.exportService.exportToCsv(filename, headers, rows);
+    } else if (format === 'excel') {
+      await this.exportService.exportToExcel(filename, title, headers, rows);
+    } else {
+      await this.exportService.exportToPdf(filename, title, headers, rows);
     }
   }
 

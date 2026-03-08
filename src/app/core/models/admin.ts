@@ -7,6 +7,7 @@ export interface AdminProduct {
   stock: number;
   imageUrl: string;
   createdAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface AdminCategory {
@@ -15,6 +16,7 @@ export interface AdminCategory {
   description: string;
   imageUrl: string;
   createdAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface AdminCategoryInput {
@@ -65,4 +67,5 @@ export interface AdminServiceRequest {
   emailError: string | null;
   userId: string | null;
   createdAt: string | null;
+  deletedAt: string | null;
 }
