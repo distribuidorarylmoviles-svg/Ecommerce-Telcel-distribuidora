@@ -59,7 +59,8 @@ export class ProductService {
     const supabase = this.supabaseService.getClient();
     let query = supabase
       .from('products')
-      .select('id, name, description, price, category, image_url, stock, created_at', { count: 'exact' });
+      .select('id, name, description, price, category, image_url, stock, created_at', { count: 'exact' })
+      .is('deleted_at', null);
 
     const search = params.buscar?.trim() ?? '';
     const category = params.categoria?.trim() ?? '';
@@ -103,6 +104,7 @@ export class ProductService {
       .from('products')
       .select('id, name, description, price, category, image_url, stock, created_at')
       .eq('id', id)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {
@@ -121,6 +123,7 @@ export class ProductService {
     const { data: categoriesData, error: categoriesError } = await supabase
       .from('categories')
       .select('id, name, description, image_url, created_at')
+      .is('deleted_at', null)
       .order('name', { ascending: true });
 
     if (categoriesError) {
