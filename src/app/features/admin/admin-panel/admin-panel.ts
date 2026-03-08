@@ -192,7 +192,7 @@ export class AdminPanel implements OnInit {
       if (this.editingProductId === product.id) {
         this.resetProductForm();
       }
-      await Promise.all([this.loadProducts(), this.loadTrash()]);
+      await Promise.all([this.loadProducts(), this.reloadDeletedProducts()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
     }
@@ -243,7 +243,7 @@ export class AdminPanel implements OnInit {
       if (this.productForm.category.trim() === category.name.trim()) {
         this.productForm = { ...this.productForm, category: '' };
       }
-      await Promise.all([this.loadCategories(), this.loadTrash()]);
+      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
     } finally {
@@ -265,7 +265,7 @@ export class AdminPanel implements OnInit {
       await this.adminService.deleteAllCategories();
       this.statusMessage.set('Todas las categorías han sido movidas a la papelera.');
       this.productForm = { ...this.productForm, category: '' };
-      await Promise.all([this.loadCategories(), this.loadTrash()]);
+      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron eliminar todas las categorías.'));
     } finally {
@@ -288,7 +288,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.deleteServiceRequest(request.id);
       this.statusMessage.set('Solicitud movida a la papelera.');
-      await Promise.all([this.loadServiceRequests(), this.loadTrash()]);
+      await Promise.all([this.loadServiceRequests(), this.reloadDeletedServiceRequests()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la solicitud.'));
     } finally {
@@ -319,7 +319,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.restoreProduct(product.id);
       this.statusMessage.set(`"${product.name}" restaurado correctamente.`);
-      await Promise.all([this.loadProducts(), this.loadTrash()]);
+      await Promise.all([this.loadProducts(), this.reloadDeletedProducts()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar el producto.'));
     } finally {
@@ -333,7 +333,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.restoreCategory(category.id);
       this.statusMessage.set(`Categoría "${category.name}" restaurada correctamente.`);
-      await Promise.all([this.loadCategories(), this.loadTrash()]);
+      await Promise.all([this.loadCategories(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la categoría.'));
     } finally {
@@ -347,7 +347,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.restoreServiceRequest(request.id);
       this.statusMessage.set(`Solicitud de "${request.nombre}" restaurada correctamente.`);
-      await Promise.all([this.loadServiceRequests(), this.loadTrash()]);
+      await Promise.all([this.loadServiceRequests(), this.reloadDeletedServiceRequests()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la solicitud.'));
     } finally {
@@ -366,7 +366,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.permanentlyDeleteProduct(product.id);
       this.statusMessage.set('Producto eliminado permanentemente.');
-      await this.loadTrash();
+      await this.reloadDeletedProducts();
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
     } finally {
@@ -385,7 +385,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.permanentlyDeleteCategory(category.id);
       this.statusMessage.set('Categoría eliminada permanentemente.');
-      await Promise.all([this.loadProducts(), this.loadTrash()]);
+      await Promise.all([this.loadProducts(), this.reloadDeletedCategories()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la categoría.'));
     } finally {
@@ -404,7 +404,7 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.permanentlyDeleteServiceRequest(request.id);
       this.statusMessage.set('Solicitud eliminada permanentemente.');
-      await this.loadTrash();
+      await this.reloadDeletedServiceRequests();
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la solicitud.'));
     } finally {
@@ -424,7 +424,9 @@ export class AdminPanel implements OnInit {
     try {
       await this.adminService.emptyTrash();
       this.statusMessage.set('Papelera vaciada correctamente.');
-      await this.loadTrash();
+      this.deletedProducts.set([]);
+      this.deletedCategories.set([]);
+      this.deletedServiceRequests.set([]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo vaciar la papelera.'));
     } finally {
@@ -573,19 +575,39 @@ export class AdminPanel implements OnInit {
 
   private async loadTrash(): Promise<void> {
     this.trashLoading.set(true);
+    // allSettled: si una sección falla (ej. columna aún no migrada) las demás siguen cargando
+    const [p, c, s] = await Promise.allSettled([
+      this.adminService.getDeletedProducts(),
+      this.adminService.getDeletedCategories(),
+      this.adminService.getDeletedServiceRequests(),
+    ]);
+    if (p.status === 'fulfilled') this.deletedProducts.set(p.value);
+    if (c.status === 'fulfilled') this.deletedCategories.set(c.value);
+    if (s.status === 'fulfilled') this.deletedServiceRequests.set(s.value);
+    this.trashLoading.set(false);
+  }
+
+  private async reloadDeletedProducts(): Promise<void> {
     try {
-      const [products, categories, requests] = await Promise.all([
-        this.adminService.getDeletedProducts(),
-        this.adminService.getDeletedCategories(),
-        this.adminService.getDeletedServiceRequests(),
-      ]);
-      this.deletedProducts.set(products);
-      this.deletedCategories.set(categories);
-      this.deletedServiceRequests.set(requests);
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo cargar la papelera.'));
-    } finally {
-      this.trashLoading.set(false);
+      this.deletedProducts.set(await this.adminService.getDeletedProducts());
+    } catch {
+      // error silencioso: no afecta el flujo principal
+    }
+  }
+
+  private async reloadDeletedCategories(): Promise<void> {
+    try {
+      this.deletedCategories.set(await this.adminService.getDeletedCategories());
+    } catch {
+      // error silencioso: no afecta el flujo principal
+    }
+  }
+
+  private async reloadDeletedServiceRequests(): Promise<void> {
+    try {
+      this.deletedServiceRequests.set(await this.adminService.getDeletedServiceRequests());
+    } catch {
+      // error silencioso: no afecta el flujo principal
     }
   }
 
