@@ -112,13 +112,17 @@ export class AdminService {
 
   async deleteProduct(id: string): Promise<void> {
     const supabase = this.supabaseService.getClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
     if (error) {
       throw new Error(error.message || 'No se pudo mover el producto a la papelera.');
+    }
+    if (!data || data.length === 0) {
+      throw new Error('No se actualizó el producto. Verifica las políticas RLS (UPDATE) en Supabase.');
     }
   }
 
@@ -174,13 +178,17 @@ export class AdminService {
 
   async deleteCategory(categoryId: string): Promise<void> {
     const supabase = this.supabaseService.getClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('categories')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', categoryId);
+      .eq('id', categoryId)
+      .select('id');
 
     if (error) {
       throw new Error(error.message || 'No se pudo mover la categoría a la papelera.');
+    }
+    if (!data || data.length === 0) {
+      throw new Error('No se actualizó la categoría. Verifica las políticas RLS (UPDATE) en Supabase.');
     }
   }
 
@@ -217,13 +225,17 @@ export class AdminService {
 
   async deleteServiceRequest(requestId: string): Promise<void> {
     const supabase = this.supabaseService.getClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('service_requests')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .select('id');
 
     if (error) {
       throw new Error(error.message || 'No se pudo mover la solicitud a la papelera.');
+    }
+    if (!data || data.length === 0) {
+      throw new Error('No se actualizó la solicitud. Verifica las políticas RLS (UPDATE) en Supabase.');
     }
   }
 

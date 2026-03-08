@@ -32,3 +32,47 @@ ALTER TABLE public.order_items
     FOREIGN KEY (product_id)
     REFERENCES public.products (id)
     ON DELETE SET NULL;
+
+-- 4. Políticas RLS para soft delete (UPDATE) en service_requests.
+--    El hard delete anterior usaba DELETE; el soft delete usa UPDATE.
+--    Sin política de UPDATE el cambio se silencia sin error.
+--
+--    Admin se identifica por user_metadata.rol o por email hardcodeado.
+
+DROP POLICY IF EXISTS "Admin puede actualizar service_requests" ON public.service_requests;
+
+CREATE POLICY "Admin puede actualizar service_requests"
+  ON public.service_requests
+  FOR UPDATE
+  TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'rol') IN ('admin', 'super_admin')
+    OR auth.email() = 'rodriguezlopezfernando26@gmail.com'
+  )
+  WITH CHECK (true);
+
+-- 5. Políticas equivalentes para products y categories (por si tampoco existían).
+
+DROP POLICY IF EXISTS "Admin puede actualizar products" ON public.products;
+
+CREATE POLICY "Admin puede actualizar products"
+  ON public.products
+  FOR UPDATE
+  TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'rol') IN ('admin', 'super_admin')
+    OR auth.email() = 'rodriguezlopezfernando26@gmail.com'
+  )
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin puede actualizar categories" ON public.categories;
+
+CREATE POLICY "Admin puede actualizar categories"
+  ON public.categories
+  FOR UPDATE
+  TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'rol') IN ('admin', 'super_admin')
+    OR auth.email() = 'rodriguezlopezfernando26@gmail.com'
+  )
+  WITH CHECK (true);
