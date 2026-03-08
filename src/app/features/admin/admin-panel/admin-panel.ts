@@ -496,6 +496,12 @@ export class AdminPanel implements OnInit {
 
   // ─── Helpers de vista ────────────────────────────────────────────────────
 
+  // true cuando el producto editado tiene una categoría que ya está en papelera
+  productCategoryIsInTrash(): boolean {
+    const cat = this.productForm.category.trim();
+    return !!cat && !this.categories().some((c) => c.name === cat);
+  }
+
   serviceLabel(type: string): string {
     if (type === 'planes') return 'Planes de Internet';
     if (type === 'portabilidad') return 'Portabilidad';

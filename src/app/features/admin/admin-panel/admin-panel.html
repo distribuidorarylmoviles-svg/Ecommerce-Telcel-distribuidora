@@ -96,13 +96,13 @@
               @for (category of categories(); track category.id) {
                 <option [value]="category.name">{{ category.name }}</option>
               }
-              @if (productForm.category && !categories().some(c => c.name === productForm.category)) {
+              @if (productCategoryIsInTrash()) {
                 <option [value]="productForm.category" class="option-deleted">
                   {{ productForm.category }} (en papelera)
                 </option>
               }
             </select>
-            @if (productForm.category && !categories().some(c => c.name === productForm.category) && editingProductId) {
+            @if (productCategoryIsInTrash() && editingProductId) {
               <span class="category-deleted-hint">
                 <i class="fas fa-triangle-exclamation"></i>
                 Esta categoría está en la papelera. Elige otra o restaura la categoría.
