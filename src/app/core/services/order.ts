@@ -88,7 +88,7 @@ export class OrderService {
     }
 
     const whatsappMsg = `Hola, realicé el pedido ${orderRow.id}. Total: $${data.total.toFixed(2)} MXN.`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`;
+    const whatsappUrl = `https://wa.me/527561651941?text=${encodeURIComponent(whatsappMsg)}`;
 
     return {
       success: true,
