@@ -94,30 +94,16 @@ export class Checkout implements OnInit {
   }
 
   private procesarPedidoWhatsApp(): void {
-    this.loading = true;
-    this.orderService.procesarPedido({
-      items: this.cartService.cartItems(),
-      ...this.form,
-      subtotal: this.cartService.subtotal(),
-      envio: this.cartService.shipping(),
-      total: this.cartService.total()
-    }).subscribe({
-      next: (res: any) => {
-        this.loading = false;
-        if (res.success) {
-          this.orderSuccess = true;
-          this.orderId = res.id_pedido ?? null;
-          this.whatsappUrl = res.whatsapp_url ?? null;
-          this.cartService.clear();
-          if (this.whatsappUrl) {
-            window.open(this.whatsappUrl, '_blank');
-          }
-        }
-      },
-      error: (err: any) => {
-        this.loading = false;
-        this.errorMsg = err?.message || 'Error al procesar el pedido. Verifica que hayas iniciado sesión.';
-      }
-    });
+    const items = this.cartService.cartItems();
+    const total = this.cartService.total();
+
+    const lineas = items.map((i: any) => `• ${i.nombre} x${i.cantidad} - $${(i.precio * i.cantidad).toFixed(2)} MXN`).join('\n');
+    const msg = `Hola, quiero realizar un pedido:\n\n${lineas}\n\nTotal: $${total.toFixed(2)} MXN\n\nNombre: ${this.form.nombre} ${this.form.apellidos}\nTeléfono: ${this.form.telefono}\nDirección: ${this.form.calle}, ${this.form.colonia}, ${this.form.ciudad}, ${this.form.estado} CP ${this.form.codigo_postal}`;
+
+    const url = `https://wa.me/527561651941?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+
+    this.orderSuccess = true;
+    this.cartService.clear();
   }
 }
