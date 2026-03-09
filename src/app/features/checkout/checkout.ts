@@ -32,7 +32,8 @@ export class Checkout implements OnInit {
   orderSuccess = false;
   orderId: string | null = null;
   whatsappUrl: string | null = null;
-  metodoPago: 'stripe' | 'transferencia' = 'stripe'; 
+  errorMsg: string | null = null;
+  metodoPago: 'stripe' | 'transferencia' = 'stripe';
 
   ngOnInit(): void {
     if (this.cartService.cartItems().length === 0) {
@@ -79,7 +80,7 @@ export class Checkout implements OnInit {
         next: async (res: any) => {
           window.location.href = res.url;
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error("Error al crear sesión de pago:", err);
           alert('Error: No se pudo conectar con el servidor de pagos.');
           this.loading = false;
@@ -101,16 +102,22 @@ export class Checkout implements OnInit {
       envio: this.cartService.shipping(),
       total: this.cartService.total()
     }).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.loading = false;
         if (res.success) {
           this.orderSuccess = true;
           this.orderId = res.id_pedido ?? null;
           this.whatsappUrl = res.whatsapp_url ?? null;
           this.cartService.clear();
+          if (this.whatsappUrl) {
+            window.open(this.whatsappUrl, '_blank');
+          }
         }
       },
-      error: () => this.loading = false
+      error: (err: any) => {
+        this.loading = false;
+        this.errorMsg = err?.message || 'Error al procesar el pedido. Verifica que hayas iniciado sesión.';
+      }
     });
   }
 }
