@@ -1,0 +1,52 @@
+<div class="chatbot-wrapper">
+  <!-- Burbuja -->
+  <button class="chat-bubble" (click)="toggleChat()" [class.open]="isOpen()">
+    @if (isOpen()) {
+      <i class="fas fa-xmark"></i>
+    } @else {
+      <i class="fas fa-comment"></i>
+    }
+  </button>
+
+  <!-- Ventana -->
+  @if (isOpen()) {
+    <div class="chat-window">
+      <header class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+          <div>
+            <strong>Asistente R y L Móviles</strong>
+            <span>En línea</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="chat-messages">
+        @for (msg of messages(); track $index) {
+          <div class="message" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+            <p>{{ msg.content }}</p>
+          </div>
+        }
+        @if (loading()) {
+          <div class="message assistant">
+            <p class="typing">...</p>
+          </div>
+        }
+      </div>
+
+      <div class="chat-input">
+        <input
+          type="text"
+          placeholder="Escribe tu mensaje..."
+          [ngModel]="inputText()"
+          (ngModelChange)="inputText.set($event)"
+          (keydown)="onKeyDown($event)"
+          [disabled]="loading()"
+        />
+        <button (click)="sendMessage()" [disabled]="loading()">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  }
+</div>
