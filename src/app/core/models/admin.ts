@@ -51,6 +51,7 @@ export interface AdminOrder {
   paymentMethod: string;
   proofUrl: string | null;
   createdAt: string | null;
+  deletedAt: string | null;
   items: AdminOrderItem[];
 }
 

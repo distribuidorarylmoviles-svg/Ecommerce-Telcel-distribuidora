@@ -33,10 +33,10 @@ export class AdminPanel implements OnInit {
   readonly serviceRequests = signal<AdminServiceRequest[]>([]);
   readonly storeInfo = signal<StoreInfo | null>(null);
 
-  // Papelera
   readonly deletedProducts = signal<AdminProduct[]>([]);
   readonly deletedCategories = signal<AdminCategory[]>([]);
   readonly deletedServiceRequests = signal<AdminServiceRequest[]>([]);
+  readonly deletedOrders = signal<AdminOrder[]>([]); // ✅
 
   readonly productsLoading = signal(false);
   readonly categoriesLoading = signal(false);
@@ -48,6 +48,7 @@ export class AdminPanel implements OnInit {
   readonly savingCategory = signal(false);
   readonly savingStoreInfo = signal(false);
   readonly deletingCategoryId = signal<string | null>(null);
+  readonly deletingOrderId = signal<string | null>(null); // ✅
   readonly resendingRequestId = signal<string | null>(null);
   readonly deletingRequestId = signal<string | null>(null);
   readonly restoringId = signal<string | null>(null);
@@ -57,6 +58,7 @@ export class AdminPanel implements OnInit {
   readonly errorMessage = signal<string | null>(null);
 
   editingProductId: string | null = null;
+  editingCategoryId: string | null = null;
   productForm: AdminProductInput = this.emptyProductForm();
   categoryForm: AdminCategoryInput = this.emptyCategoryForm();
   storeForm: StoreInfo = this.emptyStoreForm();
@@ -65,7 +67,8 @@ export class AdminPanel implements OnInit {
     () =>
       this.deletedProducts().length +
       this.deletedCategories().length +
-      this.deletedServiceRequests().length,
+      this.deletedServiceRequests().length +
+      this.deletedOrders().length, // ✅
   );
 
   readonly metrics = computed(() => ({
@@ -92,26 +95,11 @@ export class AdminPanel implements OnInit {
   }
 
   async refreshActiveTab(): Promise<void> {
-    if (this.activeTab() === 'productos') {
-      await this.loadProducts();
-      return;
-    }
-    if (this.activeTab() === 'compras') {
-      await this.loadOrders();
-      return;
-    }
-    if (this.activeTab() === 'categorias') {
-      await this.loadCategories();
-      return;
-    }
-    if (this.activeTab() === 'ubicacion') {
-      await this.loadStoreInfo();
-      return;
-    }
-    if (this.activeTab() === 'papelera') {
-      await this.loadTrash();
-      return;
-    }
+    if (this.activeTab() === 'productos') { await this.loadProducts(); return; }
+    if (this.activeTab() === 'compras') { await this.loadOrders(); return; }
+    if (this.activeTab() === 'categorias') { await this.loadCategories(); return; }
+    if (this.activeTab() === 'ubicacion') { await this.loadStoreInfo(); return; }
+    if (this.activeTab() === 'papelera') { await this.loadTrash(); return; }
     await this.loadServiceRequests();
   }
 
@@ -128,7 +116,6 @@ export class AdminPanel implements OnInit {
       imageUrl: product.imageUrl,
     };
     this.clearFeedback();
-    // Scroll al editor para que sea visible en cualquier tamaño de pantalla
     if (typeof window !== 'undefined') {
       setTimeout(() => {
         document.getElementById('product-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -136,24 +123,13 @@ export class AdminPanel implements OnInit {
     }
   }
 
-  cancelProductEdition(): void {
-    this.resetProductForm();
-  }
+  cancelProductEdition(): void { this.resetProductForm(); }
 
   async saveProduct(): Promise<void> {
     const name = this.productForm.name.trim();
-    if (!name) {
-      this.errorMessage.set('El nombre del producto es obligatorio.');
-      return;
-    }
-    if (Number(this.productForm.price) < 0) {
-      this.errorMessage.set('El precio no puede ser negativo.');
-      return;
-    }
-    if (Number(this.productForm.stock) < 0) {
-      this.errorMessage.set('El stock no puede ser negativo.');
-      return;
-    }
+    if (!name) { this.errorMessage.set('El nombre del producto es obligatorio.'); return; }
+    if (Number(this.productForm.price) < 0) { this.errorMessage.set('El precio no puede ser negativo.'); return; }
+    if (Number(this.productForm.stock) < 0) { this.errorMessage.set('El stock no puede ser negativo.'); return; }
 
     this.savingProduct.set(true);
     this.clearFeedback();
@@ -171,10 +147,7 @@ export class AdminPanel implements OnInit {
         },
         this.editingProductId ?? undefined,
       );
-
-      this.statusMessage.set(
-        this.editingProductId ? 'Producto actualizado correctamente.' : 'Producto creado correctamente.',
-      );
+      this.statusMessage.set(this.editingProductId ? 'Producto actualizado correctamente.' : 'Producto creado correctamente.');
       this.resetProductForm();
       await this.loadProducts();
     } catch (error) {
@@ -188,16 +161,13 @@ export class AdminPanel implements OnInit {
     const accepted = typeof window !== 'undefined'
       ? window.confirm(`¿Mover "${product.name}" a la papelera? Podrás restaurarlo desde la pestaña Papelera.`)
       : false;
-
     if (!accepted) return;
 
     this.clearFeedback();
     try {
       await this.adminService.deleteProduct(product.id);
       this.statusMessage.set('Producto movido a la papelera.');
-      if (this.editingProductId === product.id) {
-        this.resetProductForm();
-      }
+      if (this.editingProductId === product.id) this.resetProductForm();
       await Promise.all([this.loadProducts(), this.reloadDeletedProducts()]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el producto.'));
@@ -206,28 +176,45 @@ export class AdminPanel implements OnInit {
 
   // ─── Categorías ──────────────────────────────────────────────────────────
 
+  editCategory(category: AdminCategory): void {
+    this.editingCategoryId = category.id;
+    this.categoryForm = { name: category.name, description: category.description, imageUrl: category.imageUrl };
+    this.clearFeedback();
+  }
+
+  cancelCategoryEdition(): void {
+    this.editingCategoryId = null;
+    this.categoryForm = this.emptyCategoryForm();
+  }
+
   async saveCategory(): Promise<void> {
     const name = this.categoryForm.name.trim();
-    if (!name) {
-      this.errorMessage.set('El nombre de la categoría es obligatorio.');
-      return;
-    }
+    if (!name) { this.errorMessage.set('El nombre de la categoría es obligatorio.'); return; }
 
     this.savingCategory.set(true);
     this.clearFeedback();
 
     try {
-      await this.adminService.createCategory({
-        ...this.categoryForm,
-        name,
-        description: this.categoryForm.description.trim(),
-        imageUrl: this.categoryForm.imageUrl.trim(),
-      });
-      this.statusMessage.set('Categoría creada correctamente.');
+      if (this.editingCategoryId) {
+        await this.adminService.updateCategory(this.editingCategoryId, {
+          ...this.categoryForm, name,
+          description: this.categoryForm.description.trim(),
+          imageUrl: this.categoryForm.imageUrl.trim(),
+        });
+        this.statusMessage.set('Categoría actualizada correctamente.');
+        this.editingCategoryId = null;
+      } else {
+        await this.adminService.createCategory({
+          ...this.categoryForm, name,
+          description: this.categoryForm.description.trim(),
+          imageUrl: this.categoryForm.imageUrl.trim(),
+        });
+        this.statusMessage.set('Categoría creada correctamente.');
+      }
       this.categoryForm = this.emptyCategoryForm();
       await this.loadCategories();
     } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo crear la categoría.'));
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo guardar la categoría.'));
     } finally {
       this.savingCategory.set(false);
     }
@@ -237,12 +224,10 @@ export class AdminPanel implements OnInit {
     const accepted = typeof window !== 'undefined'
       ? window.confirm(`¿Mover "${category.name}" a la papelera? Podrás restaurarla desde la pestaña Papelera.`)
       : false;
-
     if (!accepted) return;
 
     this.clearFeedback();
     this.deletingCategoryId.set(category.id);
-
     try {
       await this.adminService.deleteCategory(category.id);
       this.statusMessage.set('Categoría movida a la papelera.');
@@ -261,12 +246,10 @@ export class AdminPanel implements OnInit {
     const accepted = typeof window !== 'undefined'
       ? window.confirm('¿Mover TODAS LAS CATEGORÍAS a la papelera? Podrás restaurarlas desde la pestaña Papelera.')
       : false;
-
     if (!accepted) return;
 
     this.clearFeedback();
     this.categoriesLoading.set(true);
-
     try {
       await this.adminService.deleteAllCategories();
       this.statusMessage.set('Todas las categorías han sido movidas a la papelera.');
@@ -279,18 +262,70 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  // ─── Compras ─────────────────────────────────────────────────────────────
+
+  async deleteOrder(order: AdminOrder): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Mover la compra #${order.id} a la papelera?`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.deletingOrderId.set(order.id);
+    try {
+      await this.adminService.deleteOrder(order.id);
+      this.statusMessage.set('Compra movida a la papelera.');
+      await Promise.all([this.loadOrders(), this.reloadDeletedOrders()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo mover la compra a la papelera.'));
+    } finally {
+      this.deletingOrderId.set(null);
+    }
+  }
+
+  async restoreOrder(order: AdminOrder): Promise<void> {
+    this.clearFeedback();
+    this.restoringId.set(order.id);
+    try {
+      await this.adminService.restoreOrder(order.id);
+      this.statusMessage.set('Compra restaurada correctamente.');
+      await Promise.all([this.loadOrders(), this.reloadDeletedOrders()]);
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo restaurar la compra.'));
+    } finally {
+      this.restoringId.set(null);
+    }
+  }
+
+  async permanentlyDeleteOrder(order: AdminOrder): Promise<void> {
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm(`¿Eliminar permanentemente la compra #${order.id}? Esta acción no se puede deshacer.`)
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    this.permanentDeletingId.set(order.id);
+    try {
+      await this.adminService.permanentlyDeleteOrder(order.id);
+      this.statusMessage.set('Compra eliminada permanentemente.');
+      await this.reloadDeletedOrders();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar la compra.'));
+    } finally {
+      this.permanentDeletingId.set(null);
+    }
+  }
+
   // ─── Solicitudes ─────────────────────────────────────────────────────────
 
   async deleteServiceRequest(request: AdminServiceRequest): Promise<void> {
     const accepted = typeof window !== 'undefined'
       ? window.confirm(`¿Mover la solicitud de "${request.nombre}" a la papelera?`)
       : false;
-
     if (!accepted) return;
 
     this.clearFeedback();
     this.deletingRequestId.set(request.id);
-
     try {
       await this.adminService.deleteServiceRequest(request.id);
       this.statusMessage.set('Solicitud movida a la papelera.');
@@ -305,7 +340,6 @@ export class AdminPanel implements OnInit {
   async resendServiceRequest(request: AdminServiceRequest): Promise<void> {
     this.clearFeedback();
     this.resendingRequestId.set(request.id);
-
     try {
       await this.adminService.resendServiceRequestEmail(request.id, request.destinationEmail);
       this.statusMessage.set('Correo reenviado correctamente.');
@@ -433,6 +467,7 @@ export class AdminPanel implements OnInit {
       this.deletedProducts.set([]);
       this.deletedCategories.set([]);
       this.deletedServiceRequests.set([]);
+      this.deletedOrders.set([]); // ✅
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo vaciar la papelera.'));
     } finally {
@@ -445,11 +480,9 @@ export class AdminPanel implements OnInit {
   async exportTab(format: ExportFormat): Promise<void> {
     this.clearFeedback();
     this.exportingFormat.set(format);
-
     try {
       const tab = this.activeTab();
       const dateStr = new Date().toISOString().slice(0, 10);
-
       if (tab === 'productos') {
         const { headers, rows } = this.adminService.getProductsExportData(this.products());
         await this.runExport(format, `productos_${dateStr}`, 'Productos', headers, rows);
@@ -463,7 +496,6 @@ export class AdminPanel implements OnInit {
         const { headers, rows } = this.adminService.getServiceRequestsExportData(this.serviceRequests());
         await this.runExport(format, `solicitudes_${dateStr}`, 'Solicitudes', headers, rows);
       }
-
       this.statusMessage.set('Archivo exportado correctamente.');
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo exportar el archivo.'));
@@ -482,7 +514,6 @@ export class AdminPanel implements OnInit {
   async saveStoreInfo(): Promise<void> {
     this.savingStoreInfo.set(true);
     this.clearFeedback();
-
     try {
       await this.adminService.updateStoreInfo(this.storeForm);
       this.statusMessage.set('Información de la tienda actualizada correctamente.');
@@ -496,7 +527,6 @@ export class AdminPanel implements OnInit {
 
   // ─── Helpers de vista ────────────────────────────────────────────────────
 
-  // true cuando el producto editado tiene una categoría que ya está en papelera
   productCategoryIsInTrash(): boolean {
     const cat = this.productForm.category.trim();
     return !!cat && !this.categories().some((c) => c.name === cat);
@@ -530,46 +560,30 @@ export class AdminPanel implements OnInit {
 
   private async loadProducts(): Promise<void> {
     this.productsLoading.set(true);
-    try {
-      this.products.set(await this.adminService.getProducts());
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar los productos.'));
-    } finally {
-      this.productsLoading.set(false);
-    }
+    try { this.products.set(await this.adminService.getProducts()); }
+    catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar los productos.')); }
+    finally { this.productsLoading.set(false); }
   }
 
   private async loadCategories(): Promise<void> {
     this.categoriesLoading.set(true);
-    try {
-      this.categories.set(await this.adminService.getCategories());
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las categorías.'));
-    } finally {
-      this.categoriesLoading.set(false);
-    }
+    try { this.categories.set(await this.adminService.getCategories()); }
+    catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las categorías.')); }
+    finally { this.categoriesLoading.set(false); }
   }
 
   private async loadOrders(): Promise<void> {
     this.ordersLoading.set(true);
-    try {
-      this.orders.set(await this.adminService.getOrders());
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las compras.'));
-    } finally {
-      this.ordersLoading.set(false);
-    }
+    try { this.orders.set(await this.adminService.getOrders()); }
+    catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las compras.')); }
+    finally { this.ordersLoading.set(false); }
   }
 
   private async loadServiceRequests(): Promise<void> {
     this.requestsLoading.set(true);
-    try {
-      this.serviceRequests.set(await this.adminService.getServiceRequests());
-    } catch (error) {
-      this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las solicitudes.'));
-    } finally {
-      this.requestsLoading.set(false);
-    }
+    try { this.serviceRequests.set(await this.adminService.getServiceRequests()); }
+    catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las solicitudes.')); }
+    finally { this.requestsLoading.set(false); }
   }
 
   private async loadStoreInfo(): Promise<void> {
@@ -587,56 +601,39 @@ export class AdminPanel implements OnInit {
 
   private async loadTrash(): Promise<void> {
     this.trashLoading.set(true);
-    // allSettled: si una sección falla (ej. columna aún no migrada) las demás siguen cargando
-    const [p, c, s] = await Promise.allSettled([
+    const [p, c, s, o] = await Promise.allSettled([
       this.adminService.getDeletedProducts(),
       this.adminService.getDeletedCategories(),
       this.adminService.getDeletedServiceRequests(),
+      this.adminService.getDeletedOrders(), // ✅
     ]);
     if (p.status === 'fulfilled') this.deletedProducts.set(p.value);
     if (c.status === 'fulfilled') this.deletedCategories.set(c.value);
     if (s.status === 'fulfilled') this.deletedServiceRequests.set(s.value);
+    if (o.status === 'fulfilled') this.deletedOrders.set(o.value); // ✅
     this.trashLoading.set(false);
   }
 
   private async reloadDeletedProducts(): Promise<void> {
-    try {
-      this.deletedProducts.set(await this.adminService.getDeletedProducts());
-    } catch {
-      // error silencioso: no afecta el flujo principal
-    }
+    try { this.deletedProducts.set(await this.adminService.getDeletedProducts()); } catch { }
   }
 
   private async reloadDeletedCategories(): Promise<void> {
-    try {
-      this.deletedCategories.set(await this.adminService.getDeletedCategories());
-    } catch {
-      // error silencioso: no afecta el flujo principal
-    }
+    try { this.deletedCategories.set(await this.adminService.getDeletedCategories()); } catch { }
   }
 
   private async reloadDeletedServiceRequests(): Promise<void> {
-    try {
-      this.deletedServiceRequests.set(await this.adminService.getDeletedServiceRequests());
-    } catch {
-      // error silencioso: no afecta el flujo principal
-    }
+    try { this.deletedServiceRequests.set(await this.adminService.getDeletedServiceRequests()); } catch { }
   }
 
-  private async runExport(
-    format: ExportFormat,
-    filename: string,
-    title: string,
-    headers: string[],
-    rows: (string | number)[][],
-  ): Promise<void> {
-    if (format === 'csv') {
-      this.exportService.exportToCsv(filename, headers, rows);
-    } else if (format === 'excel') {
-      await this.exportService.exportToExcel(filename, title, headers, rows);
-    } else {
-      await this.exportService.exportToPdf(filename, title, headers, rows);
-    }
+  private async reloadDeletedOrders(): Promise<void> {
+    try { this.deletedOrders.set(await this.adminService.getDeletedOrders()); } catch { }
+  }
+
+  private async runExport(format: ExportFormat, filename: string, title: string, headers: string[], rows: (string | number)[][]): Promise<void> {
+    if (format === 'csv') { this.exportService.exportToCsv(filename, headers, rows); }
+    else if (format === 'excel') { await this.exportService.exportToExcel(filename, title, headers, rows); }
+    else { await this.exportService.exportToPdf(filename, title, headers, rows); }
   }
 
   private emptyProductForm(): AdminProductInput {
@@ -648,17 +645,7 @@ export class AdminPanel implements OnInit {
   }
 
   private emptyStoreForm(): StoreInfo {
-    return {
-      id: 1,
-      telefono: '',
-      correo: '',
-      whatsapp: '',
-      horario_dias: '',
-      horario_horas: '',
-      direccion: '',
-      maps_embed_url: '',
-      maps_link: '',
-    };
+    return { id: 1, telefono: '', correo: '', whatsapp: '', horario_dias: '', horario_horas: '', direccion: '', maps_embed_url: '', maps_link: '' };
   }
 
   private clearFeedback(): void {

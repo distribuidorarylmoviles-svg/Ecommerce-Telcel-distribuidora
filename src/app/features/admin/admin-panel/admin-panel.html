@@ -35,21 +35,11 @@
   </section>
 
   <nav class="admin-tabs">
-    <button type="button" [class.active]="activeTab() === 'productos'" (click)="selectTab('productos')">
-      Productos
-    </button>
-    <button type="button" [class.active]="activeTab() === 'compras'" (click)="selectTab('compras')">
-      Compras
-    </button>
-    <button type="button" [class.active]="activeTab() === 'categorias'" (click)="selectTab('categorias')">
-      Categorías
-    </button>
-    <button type="button" [class.active]="activeTab() === 'solicitudes'" (click)="selectTab('solicitudes')">
-      Solicitudes de servicios
-    </button>
-    <button type="button" [class.active]="activeTab() === 'ubicacion'" (click)="selectTab('ubicacion')">
-      Ubicación
-    </button>
+    <button type="button" [class.active]="activeTab() === 'productos'" (click)="selectTab('productos')">Productos</button>
+    <button type="button" [class.active]="activeTab() === 'compras'" (click)="selectTab('compras')">Compras</button>
+    <button type="button" [class.active]="activeTab() === 'categorias'" (click)="selectTab('categorias')">Categorías</button>
+    <button type="button" [class.active]="activeTab() === 'solicitudes'" (click)="selectTab('solicitudes')">Solicitudes de servicios</button>
+    <button type="button" [class.active]="activeTab() === 'ubicacion'" (click)="selectTab('ubicacion')">Ubicación</button>
     <button type="button" class="tab-trash" [class.active]="activeTab() === 'papelera'" (click)="selectTab('papelera')">
       <i class="fas fa-trash-can"></i>
       Papelera
@@ -226,8 +216,13 @@
             <textarea name="categoryDescription" [(ngModel)]="categoryForm.description" placeholder="Breve descripción de la categoría" rows="2"></textarea>
           </label>
           <button type="submit" class="btn-primary" [disabled]="savingCategory()">
-            @if (savingCategory()) { Guardando... } @else { Agregar categoría }
+            @if (savingCategory()) { Guardando... } @else {
+              {{ editingCategoryId ? 'Guardar cambios' : 'Agregar categoría' }}
+            }
           </button>
+          @if (editingCategoryId) {
+            <button type="button" class="btn-danger" (click)="cancelCategoryEdition()">Cancelar</button>
+          }
         </form>
 
         @if (categoriesLoading()) {
@@ -260,6 +255,9 @@
                     <td><strong>{{ category.name }}</strong></td>
                     <td>{{ category.description || 'Sin descripción' }}</td>
                     <td class="actions">
+                      <button type="button" class="btn-inline" (click)="editCategory(category)">
+                        <i class="fas fa-pen"></i>
+                      </button>
                       <button type="button" class="btn-inline danger" [disabled]="deletingCategoryId() === category.id" (click)="deleteCategory(category)">
                         @if (deletingCategoryId() === category.id) { ... } @else { <i class="fas fa-trash-can"></i> }
                       </button>
@@ -299,7 +297,12 @@
           <article class="content-card">
             <header>
               <h3>Compra #{{ order.id }}</h3>
-              <span class="status-chip">{{ order.status }}</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="status-chip">{{ order.status }}</span>
+                <button type="button" class="btn-inline danger" [disabled]="deletingOrderId() === order.id" (click)="deleteOrder(order)">
+                  @if (deletingOrderId() === order.id) { ... } @else { <i class="fas fa-trash-can"></i> }
+                </button>
+              </div>
             </header>
             <div class="card-grid">
               <p><strong>Total:</strong> {{ order.totalAmount | currency:'MXN':'symbol-narrow' }}</p>
@@ -395,7 +398,6 @@
     <section class="card-list">
       <article class="content-card">
         <h3>Información de la tienda</h3>
-
         @if (storeInfoLoading()) {
           <div class="empty-state">Cargando información...</div>
         } @else {
@@ -410,12 +412,10 @@
                 <input type="text" name="whatsapp" [(ngModel)]="storeForm.whatsapp" />
               </label>
             </div>
-
             <label>
               Correo
               <input type="email" name="correo" [(ngModel)]="storeForm.correo" />
             </label>
-
             <div class="grid-two">
               <label>
                 Horario (días)
@@ -426,22 +426,18 @@
                 <input type="text" name="horario_horas" [(ngModel)]="storeForm.horario_horas" placeholder="Ej. 9:00 AM - 7:00 PM" />
               </label>
             </div>
-
             <label>
               Dirección
               <input type="text" name="direccion" [(ngModel)]="storeForm.direccion" />
             </label>
-
             <label>
               URL del mapa embed (iframe src)
               <input type="text" name="maps_embed_url" [(ngModel)]="storeForm.maps_embed_url" />
             </label>
-
             <label>
               Link de Google Maps
               <input type="text" name="maps_link" [(ngModel)]="storeForm.maps_link" />
             </label>
-
             <div class="form-actions">
               <button type="submit" class="btn-primary" [disabled]="savingStoreInfo()">
                 @if (savingStoreInfo()) { Guardando... } @else { Guardar cambios }
@@ -486,8 +482,6 @@
           <p>Los elementos que elimines aparecerán aquí.</p>
         </div>
       } @else {
-
-        <!-- Productos eliminados -->
         @if (deletedProducts().length > 0) {
           <details class="trash-group" open>
             <summary class="trash-group-title">
@@ -534,7 +528,6 @@
           </details>
         }
 
-        <!-- Categorías eliminadas -->
         @if (deletedCategories().length > 0) {
           <details class="trash-group" open>
             <summary class="trash-group-title">
@@ -576,7 +569,6 @@
           </details>
         }
 
-        <!-- Solicitudes eliminadas -->
         @if (deletedServiceRequests().length > 0) {
           <details class="trash-group" open>
             <summary class="trash-group-title">
@@ -620,6 +612,48 @@
           </details>
         }
 
+        @if (deletedOrders().length > 0) {
+          <details class="trash-group" open>
+            <summary class="trash-group-title">
+              <i class="fas fa-bag-shopping"></i> Compras ({{ deletedOrders().length }})
+            </summary>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Total</th>
+                    <th>Método de pago</th>
+                    <th>Eliminado el</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of deletedOrders(); track order.id) {
+                    <tr class="trash-row">
+                      <td><strong>{{ order.id }}</strong></td>
+                      <td>{{ order.totalAmount | currency:'MXN':'symbol-narrow' }}</td>
+                      <td>{{ order.paymentMethod }}</td>
+                      <td>{{ order.deletedAt ? (order.deletedAt | date:'short') : '—' }}</td>
+                      <td class="actions">
+                        <button type="button" class="btn-restore" [disabled]="restoringId() === order.id" (click)="restoreOrder(order)">
+                          @if (restoringId() === order.id) { ... } @else {
+                            <i class="fas fa-rotate-left"></i> Restaurar
+                          }
+                        </button>
+                        <button type="button" class="btn-inline danger" [disabled]="permanentDeletingId() === order.id" (click)="permanentlyDeleteOrder(order)">
+                          @if (permanentDeletingId() === order.id) { ... } @else {
+                            <i class="fas fa-xmark"></i>
+                          }
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
       }
     </section>
   }

@@ -5,14 +5,14 @@ import { CartItem } from '../models/cart-item';
 import { SupabaseService } from './supabase.service';
 import { SupabaseAuthService } from './supabase-auth.service';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment'; 
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   constructor(
     private supabaseService: SupabaseService,
     private supabaseAuth: SupabaseAuthService,
-    private http: HttpClient 
+    private http: HttpClient
   ) {}
 
   async getSession(): Promise<string | null> {
@@ -52,7 +52,7 @@ export class OrderService {
   private async procesarPedidoSupabase(data: any): Promise<OrderResponse> {
     const supabase = this.supabaseService.getClient();
     const user = this.supabaseAuth.currentUser;
-    
+
     if (!user) {
       throw { error: { message: 'Debes iniciar sesión para procesar el pedido.' } };
     }
@@ -75,7 +75,7 @@ export class OrderService {
 
     const orderItems = data.items.map((item: CartItem) => ({
       order_id: orderRow.id,
-      product_id: null, 
+      product_id: item.id_producto ? String(item.id_producto) : null, // ✅ corregido
       quantity: item.cantidad,
       price_at_purchase: item.precio,
     }));
@@ -84,6 +84,25 @@ export class OrderService {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) {
         throw { error: { message: itemsError.message || 'Error en productos.' } };
+      }
+
+      // Actualizar stock
+      for (const item of data.items as CartItem[]) {
+        if (item.id_producto) {
+          const { data: producto } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', String(item.id_producto))
+            .single();
+
+          if (producto) {
+            const nuevoStock = Math.max(0, (producto.stock ?? 0) - item.cantidad);
+            await supabase
+              .from('products')
+              .update({ stock: nuevoStock })
+              .eq('id', String(item.id_producto));
+          }
+        }
       }
     }
 
