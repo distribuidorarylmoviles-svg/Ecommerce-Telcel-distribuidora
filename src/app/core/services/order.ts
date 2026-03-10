@@ -3,7 +3,6 @@ import { Observable, from } from 'rxjs';
 import { OrderResponse } from '../models/order';
 import { CartItem } from '../models/cart-item';
 import { SupabaseService } from './supabase.service';
-import { SupabaseAuthService } from './supabase-auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
@@ -11,7 +10,6 @@ import { environment } from '../../../environments/environment';
 export class OrderService {
   constructor(
     private supabaseService: SupabaseService,
-    private supabaseAuth: SupabaseAuthService,
     private http: HttpClient
   ) {}
 
@@ -51,10 +49,11 @@ export class OrderService {
 
   private async procesarPedidoSupabase(data: any): Promise<OrderResponse> {
     const supabase = this.supabaseService.getClient();
-    const user = this.supabaseAuth.currentUser;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData.session?.user;
 
     if (!user) {
-      throw { error: { message: 'Debes iniciar sesión para procesar el pedido.' } };
+      throw new Error('Debes iniciar sesión para procesar el pedido.');
     }
 
     const { data: orderRow, error: orderError } = await supabase
@@ -107,7 +106,7 @@ export class OrderService {
     }
 
     const whatsappMsg = `Hola, realicé el pedido ${orderRow.id}. Total: $${data.total.toFixed(2)} MXN.`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`;
+    const whatsappUrl = `https://wa.me/527561651941?text=${encodeURIComponent(whatsappMsg)}`;
 
     return {
       success: true,

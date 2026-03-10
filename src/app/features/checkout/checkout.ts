@@ -32,7 +32,8 @@ export class Checkout implements OnInit {
   orderSuccess = false;
   orderId: string | null = null;
   whatsappUrl: string | null = null;
-  metodoPago: 'stripe' | 'transferencia' = 'stripe'; 
+  errorMsg: string | null = null;
+  metodoPago: 'stripe' | 'transferencia' = 'stripe';
 
   ngOnInit(): void {
     if (this.cartService.cartItems().length === 0) {
@@ -79,7 +80,7 @@ export class Checkout implements OnInit {
         next: async (res: any) => {
           window.location.href = res.url;
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error("Error al crear sesión de pago:", err);
           alert('Error: No se pudo conectar con el servidor de pagos.');
           this.loading = false;
@@ -93,24 +94,16 @@ export class Checkout implements OnInit {
   }
 
   private procesarPedidoWhatsApp(): void {
-    this.loading = true;
-    this.orderService.procesarPedido({
-      items: this.cartService.cartItems(),
-      ...this.form,
-      subtotal: this.cartService.subtotal(),
-      envio: this.cartService.shipping(),
-      total: this.cartService.total()
-    }).subscribe({
-      next: (res) => {
-        this.loading = false;
-        if (res.success) {
-          this.orderSuccess = true;
-          this.orderId = res.id_pedido ?? null;
-          this.whatsappUrl = res.whatsapp_url ?? null;
-          this.cartService.clear();
-        }
-      },
-      error: () => this.loading = false
-    });
+    const items = this.cartService.cartItems();
+    const total = this.cartService.total();
+
+    const lineas = items.map((i: any) => `• ${i.nombre} x${i.cantidad} - $${(i.precio * i.cantidad).toFixed(2)} MXN`).join('\n');
+    const msg = `Hola, quiero realizar un pedido:\n\n${lineas}\n\nTotal: $${total.toFixed(2)} MXN\n\nNombre: ${this.form.nombre} ${this.form.apellidos}\nTeléfono: ${this.form.telefono}\nDirección: ${this.form.calle}, ${this.form.colonia}, ${this.form.ciudad}, ${this.form.estado} CP ${this.form.codigo_postal}`;
+
+    const url = `https://wa.me/527561651941?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+
+    this.orderSuccess = true;
+    this.cartService.clear();
   }
 }

@@ -139,6 +139,12 @@
             }
           </div>
 
+          @if (errorMsg) {
+            <div class="alert-error" style="color:#c0392b;background:#fdecea;padding:0.8rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;">
+              <i class="fas fa-exclamation-circle"></i> {{ errorMsg }}
+            </div>
+          }
+
           <div class="form-actions">
             <a routerLink="/carrito" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
             <button type="submit" class="btn-submit" [disabled]="checkoutForm.invalid || loading">
