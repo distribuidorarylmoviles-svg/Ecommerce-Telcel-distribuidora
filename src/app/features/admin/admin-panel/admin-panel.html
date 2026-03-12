@@ -117,11 +117,44 @@
             URL de imagen
             <input type="text" name="imageUrl" [(ngModel)]="productForm.imageUrl" />
           </label>
+
+          <!-- ── VIDEO ✅ -->
+          <div class="video-upload-section">
+            <label>Video del producto</label>
+
+            @if (productForm.videoUrl && !selectedVideoFile) {
+              <div class="video-preview">
+                <video [src]="productForm.videoUrl" controls style="width:100%; max-height:200px; border-radius:8px;"></video>
+                <button type="button" class="btn-inline danger" style="margin-top:6px;" (click)="removeVideo()">
+                  <i class="fas fa-trash-can"></i> Eliminar video
+                </button>
+              </div>
+            }
+
+            @if (selectedVideoFile) {
+              <p class="video-selected-hint">
+                <i class="fas fa-film"></i> {{ selectedVideoFile.name }}
+                <button type="button" class="btn-inline danger" style="margin-left:8px;" (click)="selectedVideoFile = null">✕</button>
+              </p>
+            }
+
+            @if (!productForm.videoUrl || selectedVideoFile) {
+              <label class="btn-secondary" style="cursor:pointer; display:inline-block; margin-top:6px;">
+                <i class="fas fa-upload"></i> Seleccionar video
+                <input type="file" accept="video/*" style="display:none;" (change)="onVideoFileSelected($event)" />
+              </label>
+            }
+
+            @if (uploadingVideo()) {
+              <p class="video-selected-hint"><i class="fas fa-spinner fa-spin"></i> Subiendo video...</p>
+            }
+          </div>
+
           <div class="form-actions">
-            <button type="submit" class="btn-primary" [disabled]="savingProduct()">
-              @if (savingProduct()) { Guardando... } @else {
-                {{ editingProductId ? 'Guardar cambios' : 'Crear producto' }}
-              }
+            <button type="submit" class="btn-primary" [disabled]="savingProduct() || uploadingVideo()">
+              @if (uploadingVideo()) { Subiendo video... }
+              @else if (savingProduct()) { Guardando... }
+              @else { {{ editingProductId ? 'Guardar cambios' : 'Crear producto' }} }
             </button>
             @if (editingProductId) {
               <button type="button" class="btn-danger" (click)="cancelProductEdition()">Cancelar</button>

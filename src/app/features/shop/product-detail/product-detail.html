@@ -1,41 +1,92 @@
 <div class="detail-page">
   <div class="container">
+
     @if (loading) {
       <div class="loading">Cargando producto...</div>
+
     } @else if (loadError || !product) {
       <div class="not-found">
         <h2>Producto no encontrado</h2>
         <p>Este producto no está disponible o fue eliminado.</p>
         <a routerLink="/tienda" class="btn-back">Volver a la tienda</a>
       </div>
+
     } @else {
-      <a routerLink="/tienda" class="breadcrumb">&larr; Volver a la tienda</a>
 
       <div class="product-layout">
+
+        <!-- GALERÍA -->
         <div class="product-gallery">
-          <div class="main-image">
-            <img [src]="selectedImage || 'no-image.png'" [alt]="product.nombre">
-          </div>
-          @if (product.imagenes && product.imagenes.length > 1) {
-            <div class="thumbnails">
+
+          <!-- Punto de luz central animado -->
+          <div class="gallery-glow"></div>
+
+          <!-- Miniaturas verticales izquierda -->
+          <div class="thumbnails">
+            @if (product.imagenes && product.imagenes.length > 0) {
               @for (img of product.imagenes; track img.id_imagen) {
                 <img
                   [src]="toImgUrl(img.url_imagen)"
                   [alt]="product.nombre"
-                  [class.active]="selectedImage === toImgUrl(img.url_imagen)"
+                  [class.active]="!showVideo && selectedImage === toImgUrl(img.url_imagen)"
                   (click)="selectImage(img.url_imagen)">
               }
-            </div>
-          }
+            }
+
+            <!-- Miniatura video -->
+            @if (product.video_url) {
+              <div class="thumb-video" [class.active]="showVideo" (click)="showVideo = true">
+                <i class="fas fa-play"></i>
+              </div>
+            }
+          </div>
+
+          <!-- Imagen / Video principal -->
+          <div class="main-media">
+
+            @if (!showVideo) {
+              <div class="main-image">
+                <!-- Marco degradado animado -->
+                <div class="image-frame">
+                  <img [src]="selectedImage || '/no-image.png'" [alt]="product.nombre">
+                </div>
+              </div>
+            }
+
+            @if (showVideo && product.video_url) {
+              <div class="gallery-video">
+                <video
+                  [src]="product.video_url"
+                  controls
+                  playsinline
+                  autoplay
+                  controlslist="nodownload nofullscreen"
+                  oncontextmenu="return false">
+                </video>
+              </div>
+            }
+
+          </div>
+
         </div>
 
+        <!-- INFO -->
         <div class="product-info">
+
           <span class="product-brand">{{ product.marca }}</span>
           <h1>{{ product.nombre }}</h1>
+
           @if (product.color) {
             <span class="product-color">Color: {{ product.color }}</span>
           }
-          <p class="product-price">{{ product.precio | currency:'MXN':'symbol-narrow' }}</p>
+
+          <div class="price-box">
+            <div>
+              <div class="price-lbl">Precio</div>
+              <div class="price-val">{{ product.precio | currency:'MXN':'symbol-narrow' }}</div>
+            </div>
+            <span class="price-cur">MXN</span>
+          </div>
 
           <div class="stock-info">
             @if (product.stock > 10) {
@@ -49,14 +100,14 @@
 
           @if (product.stock > 0) {
             <div class="quantity-selector">
-              <button (click)="decrementQty()" [disabled]="quantity <= 1">-</button>
+              <button (click)="decrementQty()" [disabled]="quantity <= 1">−</button>
               <span>{{ quantity }}</span>
               <button (click)="incrementQty()" [disabled]="quantity >= product.stock">+</button>
             </div>
 
             <div class="action-buttons">
-              <button class="btn-add-cart" (click)="addToCart()">
-                @if (addedToCart) { ¡Agregado! } @else { Agregar al carrito }
+              <button class="btn-add-cart" [class.added]="addedToCart" (click)="addToCart()">
+                @if (addedToCart) { ✓ ¡Agregado! } @else { Agregar al carrito }
               </button>
               <button class="btn-buy-now" (click)="buyNow()">
                 Comprar ahora
@@ -66,7 +117,7 @@
 
           @if (product.descripcion) {
             <div class="product-description">
-              <h3>Descripcion</h3>
+              <h3>Descripción</h3>
               <p>{{ product.descripcion }}</p>
             </div>
           }
@@ -77,8 +128,11 @@
               <p>{{ product.detalles_adicional }}</p>
             </div>
           }
+
         </div>
       </div>
+
     }
+
   </div>
 </div>

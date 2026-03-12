@@ -29,6 +29,7 @@ type DbProductRow = {
   price: number | string;
   category: string | null;
   image_url: string | null;
+  video_url: string | null; // ✅
   stock: number | null;
   created_at: string | null;
   deleted_at: string | null;
@@ -42,7 +43,7 @@ type DbOrderRow = {
   payment_method: string | null;
   proof_url: string | null;
   created_at: string | null;
-  deleted_at: string | null; // ✅
+  deleted_at: string | null;
 };
 
 type DbOrderItemRow = {
@@ -93,7 +94,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
+      .select('id, name, description, price, category, image_url, video_url, stock, created_at, deleted_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message || 'No se pudieron cargar los productos.');
@@ -111,6 +112,30 @@ export class AdminService {
       .from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id).select('id');
     if (error) throw new Error(error.message || 'No se pudo mover el producto a la papelera.');
     if (!data || data.length === 0) throw new Error('No se actualizó el producto. Verifica las políticas RLS (UPDATE) en Supabase.');
+  }
+
+  // ─── Upload de video ─────────────────────────────────────────────────────
+
+  async uploadProductVideo(file: File, productId: string): Promise<string> {
+    const supabase = this.supabaseService.getClient();
+    const ext = file.name.split('.').pop();
+    const path = `${productId}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('product-videos')
+      .upload(path, file, { upsert: true });
+
+    if (error) throw new Error(error.message || 'No se pudo subir el video.');
+
+    const { data } = supabase.storage.from('product-videos').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async deleteProductVideo(videoUrl: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const path = videoUrl.split('/product-videos/')[1];
+    if (!path) return;
+    await supabase.storage.from('product-videos').remove([path]);
   }
 
   // ─── Categorías activas ──────────────────────────────────────────────────
@@ -212,7 +237,7 @@ export class AdminService {
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
       .select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at')
-      .is('deleted_at', null) // ✅ solo activas
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (ordersError) throw new Error(ordersError.message || 'No se pudieron cargar las compras.');
@@ -293,7 +318,7 @@ export class AdminService {
   async getDeletedProducts(): Promise<AdminProduct[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('products').select('id, name, description, price, category, image_url, stock, created_at, deleted_at')
+      .from('products').select('id, name, description, price, category, image_url, video_url, stock, created_at, deleted_at')
       .not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
     if (error) throw new Error(error.message || 'No se pudieron cargar los productos eliminados.');
     return (data ?? []).map((row) => this.mapProduct(row as DbProductRow));
@@ -402,7 +427,7 @@ export class AdminService {
       supabase.from('products').delete().not('deleted_at', 'is', null),
       supabase.from('categories').delete().not('deleted_at', 'is', null),
       supabase.from('service_requests').delete().not('deleted_at', 'is', null),
-      supabase.from('orders').delete().not('deleted_at', 'is', null), // ✅
+      supabase.from('orders').delete().not('deleted_at', 'is', null),
     ]);
     if (p.error) throw new Error(p.error.message || 'No se pudieron eliminar los productos.');
     if (c.error) throw new Error(c.error.message || 'No se pudieron eliminar las categorías.');
@@ -446,7 +471,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const payload = this.toProductPayload(input);
     const { data, error } = await supabase.from('products').insert(payload)
-      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at').single();
+      .select('id, name, description, price, category, image_url, video_url, stock, created_at, deleted_at').single();
     if (error || !data) throw new Error(error?.message || 'No se pudo crear el producto.');
     return this.mapProduct(data as DbProductRow);
   }
@@ -455,7 +480,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const payload = this.toProductPayload(input);
     const { data, error } = await supabase.from('products').update(payload).eq('id', id)
-      .select('id, name, description, price, category, image_url, stock, created_at, deleted_at').single();
+      .select('id, name, description, price, category, image_url, video_url, stock, created_at, deleted_at').single();
     if (error || !data) throw new Error(error?.message || 'No se pudo actualizar el producto.');
     return this.mapProduct(data as DbProductRow);
   }
@@ -469,6 +494,7 @@ export class AdminService {
       price: this.toNumber(input.price, 0),
       category: input.category.trim() || null,
       image_url: input.imageUrl.trim() || null,
+      video_url: input.videoUrl ?? null, // ✅
       stock: Math.max(0, Math.floor(this.toNumber(input.stock, 0))),
     };
   }
@@ -478,6 +504,7 @@ export class AdminService {
       id: row.id, name: row.name, description: row.description ?? '',
       price: this.toNumber(row.price, 0), category: row.category ?? '',
       stock: this.toNumber(row.stock, 0), imageUrl: row.image_url ?? '',
+      videoUrl: row.video_url ?? null, // ✅
       createdAt: row.created_at, deletedAt: row.deleted_at ?? null,
     };
   }

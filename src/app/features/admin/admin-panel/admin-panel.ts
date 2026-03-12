@@ -36,7 +36,7 @@ export class AdminPanel implements OnInit {
   readonly deletedProducts = signal<AdminProduct[]>([]);
   readonly deletedCategories = signal<AdminCategory[]>([]);
   readonly deletedServiceRequests = signal<AdminServiceRequest[]>([]);
-  readonly deletedOrders = signal<AdminOrder[]>([]); // ✅
+  readonly deletedOrders = signal<AdminOrder[]>([]);
 
   readonly productsLoading = signal(false);
   readonly categoriesLoading = signal(false);
@@ -47,8 +47,9 @@ export class AdminPanel implements OnInit {
   readonly savingProduct = signal(false);
   readonly savingCategory = signal(false);
   readonly savingStoreInfo = signal(false);
+  readonly uploadingVideo = signal(false); // ✅
   readonly deletingCategoryId = signal<string | null>(null);
-  readonly deletingOrderId = signal<string | null>(null); // ✅
+  readonly deletingOrderId = signal<string | null>(null);
   readonly resendingRequestId = signal<string | null>(null);
   readonly deletingRequestId = signal<string | null>(null);
   readonly restoringId = signal<string | null>(null);
@@ -62,13 +63,14 @@ export class AdminPanel implements OnInit {
   productForm: AdminProductInput = this.emptyProductForm();
   categoryForm: AdminCategoryInput = this.emptyCategoryForm();
   storeForm: StoreInfo = this.emptyStoreForm();
+  selectedVideoFile: File | null = null; // ✅
 
   readonly trashCount = computed(
     () =>
       this.deletedProducts().length +
       this.deletedCategories().length +
       this.deletedServiceRequests().length +
-      this.deletedOrders().length, // ✅
+      this.deletedOrders().length,
   );
 
   readonly metrics = computed(() => ({
@@ -114,7 +116,9 @@ export class AdminPanel implements OnInit {
       category: product.category,
       stock: product.stock,
       imageUrl: product.imageUrl,
+      videoUrl: product.videoUrl ?? null,
     };
+    this.selectedVideoFile = null;
     this.clearFeedback();
     if (typeof window !== 'undefined') {
       setTimeout(() => {
@@ -124,6 +128,42 @@ export class AdminPanel implements OnInit {
   }
 
   cancelProductEdition(): void { this.resetProductForm(); }
+
+  onVideoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (file && !file.type.startsWith('video/')) {
+      this.errorMessage.set('Solo se permiten archivos de video.');
+      this.selectedVideoFile = null;
+      return;
+    }
+    this.selectedVideoFile = file;
+  }
+
+  async removeVideo(): Promise<void> {
+    if (!this.editingProductId) return;
+    const accepted = typeof window !== 'undefined'
+      ? window.confirm('¿Eliminar el video de este producto?')
+      : false;
+    if (!accepted) return;
+
+    this.clearFeedback();
+    try {
+      if (this.productForm.videoUrl) {
+        await this.adminService.deleteProductVideo(this.productForm.videoUrl);
+      }
+      await this.adminService.saveProduct(
+        { ...this.productForm, videoUrl: null },
+        this.editingProductId
+      );
+      this.productForm = { ...this.productForm, videoUrl: null };
+      this.selectedVideoFile = null;
+      this.statusMessage.set('Video eliminado correctamente.');
+      await this.loadProducts();
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo eliminar el video.'));
+    }
+  }
 
   async saveProduct(): Promise<void> {
     const name = this.productForm.name.trim();
@@ -135,6 +175,16 @@ export class AdminPanel implements OnInit {
     this.clearFeedback();
 
     try {
+      let videoUrl = this.productForm.videoUrl ?? null;
+
+      // Si hay un video nuevo seleccionado, subirlo primero
+      if (this.selectedVideoFile) {
+        this.uploadingVideo.set(true);
+        const tempId = this.editingProductId ?? `temp_${Date.now()}`;
+        videoUrl = await this.adminService.uploadProductVideo(this.selectedVideoFile, tempId);
+        this.uploadingVideo.set(false);
+      }
+
       await this.adminService.saveProduct(
         {
           ...this.productForm,
@@ -144,6 +194,7 @@ export class AdminPanel implements OnInit {
           imageUrl: this.productForm.imageUrl.trim(),
           price: Number(this.productForm.price),
           stock: Math.floor(Number(this.productForm.stock)),
+          videoUrl,
         },
         this.editingProductId ?? undefined,
       );
@@ -151,6 +202,7 @@ export class AdminPanel implements OnInit {
       this.resetProductForm();
       await this.loadProducts();
     } catch (error) {
+      this.uploadingVideo.set(false);
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo guardar el producto.'));
     } finally {
       this.savingProduct.set(false);
@@ -467,7 +519,7 @@ export class AdminPanel implements OnInit {
       this.deletedProducts.set([]);
       this.deletedCategories.set([]);
       this.deletedServiceRequests.set([]);
-      this.deletedOrders.set([]); // ✅
+      this.deletedOrders.set([]);
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo vaciar la papelera.'));
     } finally {
@@ -605,12 +657,12 @@ export class AdminPanel implements OnInit {
       this.adminService.getDeletedProducts(),
       this.adminService.getDeletedCategories(),
       this.adminService.getDeletedServiceRequests(),
-      this.adminService.getDeletedOrders(), // ✅
+      this.adminService.getDeletedOrders(),
     ]);
     if (p.status === 'fulfilled') this.deletedProducts.set(p.value);
     if (c.status === 'fulfilled') this.deletedCategories.set(c.value);
     if (s.status === 'fulfilled') this.deletedServiceRequests.set(s.value);
-    if (o.status === 'fulfilled') this.deletedOrders.set(o.value); // ✅
+    if (o.status === 'fulfilled') this.deletedOrders.set(o.value);
     this.trashLoading.set(false);
   }
 
@@ -637,7 +689,7 @@ export class AdminPanel implements OnInit {
   }
 
   private emptyProductForm(): AdminProductInput {
-    return { name: '', description: '', price: 0, category: '', stock: 0, imageUrl: '' };
+    return { name: '', description: '', price: 0, category: '', stock: 0, imageUrl: '', videoUrl: null };
   }
 
   private emptyCategoryForm(): AdminCategoryInput {
@@ -656,6 +708,7 @@ export class AdminPanel implements OnInit {
   private resetProductForm(): void {
     this.editingProductId = null;
     this.productForm = this.emptyProductForm();
+    this.selectedVideoFile = null;
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {
