@@ -13,6 +13,7 @@ type DbProductRow = {
   price: number | string;
   category: string | null;
   image_url: string | null;
+  video_url: string | null; // ✅
   stock: number | null;
   created_at: string | null;
 };
@@ -29,9 +30,8 @@ type DbCategoryRow = {
 export class ProductService {
   private static readonly PAGE_SIZE = 24;
   private static readonly PRODUCT_SELECT =
-    'id, name, description, price, category, image_url, stock, created_at';
+    'id, name, description, price, category, image_url, video_url, stock, created_at'; // ✅
 
-  // null = desconocido, true = columna existe, false = migración pendiente
   private deletedAtAvailable: boolean | null = null;
 
   constructor(private supabaseService: SupabaseService) {}
@@ -80,6 +80,7 @@ export class ProductService {
       tipo_producto: category,
       estado: 'nuevo',
       imagen_principal: imageUrl,
+      video_url: row.video_url ?? null, // ✅
       imagenes: imageUrl
         ? [{ id_imagen: 1, id_producto: row.id, url_imagen: imageUrl, principal: true }]
         : [],
@@ -100,7 +101,6 @@ export class ProductService {
   private async fetchProduct(id: string): Promise<{ success: boolean; producto?: Product }> {
     const supabase = this.supabaseService.getClient();
 
-    // Con filtro deleted_at (si la migración ya fue ejecutada)
     if (this.deletedAtAvailable !== false) {
       const { data, error } = await supabase
         .from('products')
@@ -116,14 +116,12 @@ export class ProductService {
       }
 
       if (this.isMissingDeletedAt(error.message ?? '')) {
-        // Migración no ejecutada → reintento sin filtro
         this.deletedAtAvailable = false;
       } else {
         throw new Error(error.message || 'No se pudo cargar el producto.');
       }
     }
 
-    // Sin filtro deleted_at (migración pendiente)
     const { data, error } = await supabase
       .from('products')
       .select(ProductService.PRODUCT_SELECT)
@@ -149,7 +147,6 @@ export class ProductService {
     const rangeFrom = (page - 1) * ProductService.PAGE_SIZE;
     const rangeTo = page * ProductService.PAGE_SIZE - 1;
 
-    // Con filtro deleted_at — orden correcto: select() primero, is() después
     if (this.deletedAtAvailable !== false) {
       let q = supabase
         .from('products')
@@ -175,7 +172,6 @@ export class ProductService {
       }
     }
 
-    // Sin filtro deleted_at (migración pendiente)
     let qFallback = supabase
       .from('products')
       .select(ProductService.PRODUCT_SELECT, { count: 'exact' });
@@ -212,7 +208,6 @@ export class ProductService {
   private async fetchCategories(): Promise<{ success: boolean; categorias: Category[] }> {
     const supabase = this.supabaseService.getClient();
 
-    // Con filtro deleted_at
     if (this.deletedAtAvailable !== false) {
       const { data, error } = await supabase
         .from('categories')
@@ -237,7 +232,6 @@ export class ProductService {
       }
     }
 
-    // Sin filtro deleted_at
     const { data, error } = await supabase
       .from('categories')
       .select('id, name, description, image_url, created_at')

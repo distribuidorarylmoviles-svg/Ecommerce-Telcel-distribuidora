@@ -13,6 +13,7 @@ export interface Product {
   estado: string;
   imagenes?: ProductImage[];
   imagen_principal?: string;
+  video_url?: string | null; // ✅
 }
 
 export interface ProductImage {

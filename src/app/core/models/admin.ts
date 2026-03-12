@@ -6,6 +6,7 @@ export interface AdminProduct {
   category: string;
   stock: number;
   imageUrl: string;
+  videoUrl: string | null; // ✅
   createdAt: string | null;
   deletedAt: string | null;
 }
@@ -32,6 +33,7 @@ export interface AdminProductInput {
   category: string;
   stock: number;
   imageUrl: string;
+  videoUrl: string | null; // ✅
 }
 
 export interface AdminOrderItem {

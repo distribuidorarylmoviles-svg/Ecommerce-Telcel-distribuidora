@@ -25,6 +25,7 @@ export class ProductDetail implements OnInit {
   loading = true;
   loadError = false;
   addedToCart = false;
+  showVideo = false; // ✅
 
   toImgUrl(filename: string): string {
     if (!filename) return '/no-image.png';
@@ -48,6 +49,7 @@ export class ProductDetail implements OnInit {
         if (res.success && res.producto) {
           this.product = res.producto;
           this.selectedImage = this.toImgUrl(res.producto.imagen_principal || '');
+          this.showVideo = false;
         } else {
           this.loadError = true;
         }
@@ -63,6 +65,7 @@ export class ProductDetail implements OnInit {
 
   selectImage(url: string): void {
     this.selectedImage = this.toImgUrl(url);
+    this.showVideo = false; // ✅
   }
 
   decrementQty(): void {
