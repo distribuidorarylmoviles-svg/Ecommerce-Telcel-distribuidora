@@ -380,7 +380,7 @@ export class AdminService {
   async getDeletedOrders(): Promise<AdminOrder[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('orders').select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at')
+      .from('orders').select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url')
       .not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
     if (error) throw new Error(error.message || 'No se pudieron cargar las compras eliminadas.');
     return (data ?? []).map((order) => ({
@@ -393,6 +393,9 @@ export class AdminService {
       createdAt: order.created_at,
       deletedAt: order.deleted_at ?? null,
       items: [],
+      trackingNumber: order.tracking_number ?? null,
+      carrier: order.carrier ?? null,
+      trackingUrl: order.tracking_url ?? null,
     }));
   }
 
