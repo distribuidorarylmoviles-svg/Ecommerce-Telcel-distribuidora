@@ -627,6 +627,121 @@ details.trash-group[open] .trash-group-title::after {
   }
 }
 
+// ── Rastreo de paquete ───────────────────────────────────────────────────────
+
+.tracking-section {
+  margin-top: 14px;
+  border-top: 1px solid #e2e8f5;
+  padding-top: 12px;
+}
+
+.tracking-label {
+  font-weight: 600;
+  color: #233f7b;
+  font-size: 14px;
+  margin: 0 0 8px;
+
+  i { margin-right: 6px; }
+}
+
+.tracking-input-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  input {
+    flex: 1;
+    min-width: 180px;
+    border: 1px solid #c8d8ff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+
+    &:focus { border-color: #0033a0; box-shadow: 0 0 0 2px rgba(0,51,160,0.1); }
+  }
+}
+
+.tracking-result {
+  margin-top: 12px;
+  background: #f6f8fc;
+  border: 1px solid #d8e3ff;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.tracking-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.tracking-external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #0033a0;
+  margin-top: 6px;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.tracking-no-events {
+  color: #6b7fa8;
+  font-size: 13px;
+  margin: 0;
+}
+
+.tracking-events {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.tracking-event {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  .event-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0033a0;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .event-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 13px;
+  }
+
+  .event-status {
+    font-weight: 600;
+    color: #173a80;
+    width: 100%;
+  }
+
+  .event-desc { color: #3d5080; }
+
+  .event-location {
+    color: #6b7fa8;
+    i { margin-right: 3px; }
+  }
+
+  .event-date { color: #9aaac8; }
+}
+
 @media (max-width: 768px) {
   .admin-header {
     flex-direction: column;

@@ -55,6 +55,23 @@ export interface AdminOrder {
   createdAt: string | null;
   deletedAt: string | null;
   items: AdminOrderItem[];
+  trackingNumber: string | null;
+  carrier: string | null;
+  trackingUrl: string | null;
+}
+
+export interface TrackingEvent {
+  status: string;
+  description: string;
+  location: string;
+  date: string;
+}
+
+export interface TrackingResult {
+  trackingNumber: string;
+  carrier: string;
+  status: string;
+  events: TrackingEvent[];
 }
 
 export interface AdminServiceRequest {

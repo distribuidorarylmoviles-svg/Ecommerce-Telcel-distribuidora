@@ -8,6 +8,7 @@ import {
   AdminProduct,
   AdminProductInput,
   AdminServiceRequest,
+  TrackingResult,
 } from '../../../core/models/admin';
 import { AdminService, StoreInfo } from '../../../core/services/admin';
 import { ExportService } from '../../../core/services/export';
@@ -57,6 +58,11 @@ export class AdminPanel implements OnInit {
   readonly exportingFormat = signal<ExportFormat | null>(null);
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly trackingInputs = signal<Record<string, string>>({});
+  readonly trackingResults = signal<Record<string, TrackingResult>>({});
+  readonly trackingErrors = signal<Record<string, string>>({});
+  readonly trackingLoading = signal<string | null>(null);
+  readonly savingTrackingId = signal<string | null>(null);
 
   editingProductId: string | null = null;
   editingCategoryId: string | null = null;
@@ -311,6 +317,46 @@ export class AdminPanel implements OnInit {
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron eliminar todas las categorías.'));
     } finally {
       this.categoriesLoading.set(false);
+    }
+  }
+
+  // ─── Rastreo ─────────────────────────────────────────────────────────────
+
+  setTrackingInput(orderId: string, value: string): void {
+    this.trackingInputs.update((inputs) => ({ ...inputs, [orderId]: value }));
+    this.trackingErrors.update((errs) => ({ ...errs, [orderId]: '' }));
+    if (this.trackingResults()[orderId]) {
+      this.trackingResults.update((r) => { const copy = { ...r }; delete copy[orderId]; return copy; });
+    }
+  }
+
+  async saveOrderTracking(orderId: string): Promise<void> {
+    const number = this.trackingInputs()[orderId]?.trim() ?? '';
+    this.savingTrackingId.set(orderId);
+    this.trackingErrors.update((e) => ({ ...e, [orderId]: '' }));
+    try {
+      await this.adminService.saveTrackingNumber(orderId, number);
+      this.orders.update((list) => list.map((o) => o.id === orderId ? { ...o, trackingNumber: number || null } : o));
+      this.statusMessage.set('Número de guía guardado.');
+    } catch (error) {
+      this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo guardar la guía.') }));
+    } finally {
+      this.savingTrackingId.set(null);
+    }
+  }
+
+  async trackOrder(orderId: string): Promise<void> {
+    const number = this.trackingInputs()[orderId]?.trim();
+    if (!number) return;
+    this.trackingLoading.set(orderId);
+    this.trackingErrors.update((e) => ({ ...e, [orderId]: '' }));
+    try {
+      const result = await this.adminService.trackShipment(number);
+      this.trackingResults.update((r) => ({ ...r, [orderId]: result }));
+    } catch (error) {
+      this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo rastrear el paquete.') }));
+    } finally {
+      this.trackingLoading.set(null);
     }
   }
 
@@ -626,7 +672,15 @@ export class AdminPanel implements OnInit {
 
   private async loadOrders(): Promise<void> {
     this.ordersLoading.set(true);
-    try { this.orders.set(await this.adminService.getOrders()); }
+    try {
+      const orders = await this.adminService.getOrders();
+      this.orders.set(orders);
+      const prefilled: Record<string, string> = {};
+      for (const o of orders) {
+        if (o.trackingNumber) prefilled[o.id] = o.trackingNumber;
+      }
+      this.trackingInputs.update((current) => ({ ...prefilled, ...current }));
+    }
     catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las compras.')); }
     finally { this.ordersLoading.set(false); }
   }

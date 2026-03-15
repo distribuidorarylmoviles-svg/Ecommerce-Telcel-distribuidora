@@ -8,6 +8,7 @@ import {
   AdminProduct,
   AdminProductInput,
   AdminServiceRequest,
+  TrackingResult,
 } from '../models/admin';
 
 export type StoreInfo = {
@@ -44,6 +45,9 @@ type DbOrderRow = {
   proof_url: string | null;
   created_at: string | null;
   deleted_at: string | null;
+  tracking_number: string | null;
+  carrier: string | null;
+  tracking_url: string | null;
 };
 
 type DbOrderItemRow = {
@@ -82,6 +86,24 @@ type DbCategoryRow = {
   image_url: string | null;
   created_at: string | null;
   deleted_at: string | null;
+};
+
+type SkydropxTrackingEvent = {
+  status: string | null;
+  description: string | null;
+  location: string | null;
+  created_at: string | null;
+};
+
+type SkydropxApiResponse = {
+  data?: Array<{
+    attributes?: {
+      tracking_number?: string;
+      status?: string;
+      carrier_name?: string;
+      tracking_events?: SkydropxTrackingEvent[];
+    };
+  }>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -236,7 +258,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
-      .select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at')
+      .select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -288,7 +310,19 @@ export class AdminService {
       createdAt: order.created_at,
       deletedAt: order.deleted_at ?? null,
       items: itemsByOrder.get(order.id) ?? [],
+      trackingNumber: order.tracking_number ?? null,
+      carrier: order.carrier ?? null,
+      trackingUrl: order.tracking_url ?? null,
     }));
+  }
+
+  async saveTrackingNumber(orderId: string, trackingNumber: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('orders')
+      .update({ tracking_number: trackingNumber.trim() || null })
+      .eq('id', orderId);
+    if (error) throw new Error(error.message || 'No se pudo guardar el número de guía.');
   }
 
   async deleteOrder(id: string): Promise<void> {
@@ -462,6 +496,39 @@ export class AdminService {
     return {
       headers: ['ID', 'Servicio', 'Nombre', 'Correo', 'Teléfono', 'Estado correo', 'Fecha'],
       rows: requests.map((r) => [r.id, r.serviceType, r.nombre, r.correoElectronico || '', r.telefonoCelular || '', r.emailSent ? 'Enviado' : r.emailError ? 'Error' : 'Pendiente', r.createdAt || '']),
+    };
+  }
+
+  // ─── Rastreo Skydropx ────────────────────────────────────────────────────
+
+  async trackShipment(trackingNumber: string): Promise<TrackingResult> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase.functions.invoke('track-shipment', {
+      body: { tracking_number: trackingNumber },
+    });
+    if (error) {
+      const functionError = await this.extractFunctionError(error);
+      throw new Error(functionError || error.message || 'No se pudo rastrear el paquete.');
+    }
+    const res = data as { ok: boolean; data?: SkydropxApiResponse; error?: string };
+    if (!res.ok) throw new Error(res.error || 'No se pudo rastrear el paquete.');
+    return this.mapTrackingResult(trackingNumber, res.data);
+  }
+
+  private mapTrackingResult(trackingNumber: string, apiData?: SkydropxApiResponse): TrackingResult {
+    const record = apiData?.data?.[0];
+    const attrs = record?.attributes;
+    const events = (attrs?.tracking_events ?? []).map((e) => ({
+      status: e.status ?? '',
+      description: e.description ?? '',
+      location: e.location ?? '',
+      date: e.created_at ?? '',
+    }));
+    return {
+      trackingNumber: attrs?.tracking_number ?? trackingNumber,
+      carrier: attrs?.carrier_name ?? 'N/A',
+      status: attrs?.status ?? 'Sin información',
+      events,
     };
   }
 

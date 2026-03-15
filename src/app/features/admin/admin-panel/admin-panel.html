@@ -355,6 +355,73 @@
                 </ul>
               }
             </details>
+
+            <div class="tracking-section">
+              <p class="tracking-label"><i class="fas fa-truck"></i> Rastreo de paquete</p>
+              <div class="tracking-input-row">
+                <input
+                  type="text"
+                  placeholder="Número de guía"
+                  [value]="trackingInputs()[order.id] || ''"
+                  (input)="setTrackingInput(order.id, $any($event.target).value)"
+                />
+                <button
+                  type="button"
+                  class="btn-inline"
+                  [disabled]="savingTrackingId() === order.id"
+                  (click)="saveOrderTracking(order.id)"
+                  title="Guardar número de guía"
+                >
+                  @if (savingTrackingId() === order.id) { <i class="fas fa-spinner fa-spin"></i> }
+                  @else { <i class="fas fa-floppy-disk"></i> }
+                </button>
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  [disabled]="trackingLoading() === order.id || !trackingInputs()[order.id]?.trim()"
+                  (click)="trackOrder(order.id)"
+                >
+                  @if (trackingLoading() === order.id) { <i class="fas fa-spinner fa-spin"></i> Rastreando... }
+                  @else { <i class="fas fa-location-dot"></i> Rastrear }
+                </button>
+              </div>
+              @if (order.trackingUrl) {
+                <a class="tracking-external-link" [href]="order.trackingUrl" target="_blank" rel="noopener">
+                  <i class="fas fa-arrow-up-right-from-square"></i> Ver rastreo en sitio del carrier
+                </a>
+              }
+
+              @if (trackingErrors()[order.id]) {
+                <p class="error-text">{{ trackingErrors()[order.id] }}</p>
+              }
+
+              @if (trackingResults()[order.id]; as result) {
+                <div class="tracking-result">
+                  <div class="tracking-summary">
+                    <span><strong>Guía:</strong> {{ result.trackingNumber }}</span>
+                    <span><strong>Carrier:</strong> {{ result.carrier }}</span>
+                    <span class="status-chip">{{ result.status }}</span>
+                  </div>
+                  @if (result.events.length === 0) {
+                    <p class="tracking-no-events">Sin eventos de rastreo disponibles aún.</p>
+                  } @else {
+                    <ul class="tracking-events">
+                      @for (event of result.events; track event.date + event.status) {
+                        <li class="tracking-event">
+                          <span class="event-dot"></span>
+                          <div class="event-body">
+                            <span class="event-status">{{ event.status }}</span>
+                            @if (event.description) { <span class="event-desc">{{ event.description }}</span> }
+                            @if (event.location) { <span class="event-location"><i class="fas fa-map-marker-alt"></i> {{ event.location }}</span> }
+                            @if (event.date) { <span class="event-date">{{ event.date | date:'short' }}</span> }
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
           </article>
         }
       }
