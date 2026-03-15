@@ -511,8 +511,32 @@ export class AdminService {
       const functionError = await this.extractFunctionError(error);
       throw new Error(functionError || error.message || 'No se pudo rastrear el paquete.');
     }
-    const res = data as { ok: boolean; data?: SkydropxRadarResponse; error?: string };
+    const res = data as {
+      ok: boolean;
+      trackingNumber?: string;
+      carrier?: string;
+      status?: string;
+      trackingUrl?: string;
+      events?: SkydropxRadarEvent[];
+      data?: SkydropxRadarResponse;
+      error?: string;
+    };
     if (!res.ok) throw new Error(res.error || 'No se pudo rastrear el paquete.');
+
+    if (res.trackingNumber !== undefined || res.events !== undefined) {
+      return {
+        trackingNumber: res.trackingNumber ?? trackingNumber,
+        carrier: res.carrier ?? carrier,
+        status: res.status ?? 'Sin información',
+        trackingUrl: res.trackingUrl ?? null,
+        events: (res.events ?? []).map((e) => ({
+          status: e.status ?? '',
+          description: e.description ?? '',
+          location: e.location ?? '',
+          date: e.date ?? '',
+        })),
+      };
+    }
     return this.mapTrackingResult(trackingNumber, carrier, res.data);
   }
 
@@ -528,6 +552,7 @@ export class AdminService {
       trackingNumber: record?.tracking_number ?? trackingNumber,
       carrier: carrier,
       status: record?.status ?? 'Sin información',
+      trackingUrl: null,
       events,
     };
   }

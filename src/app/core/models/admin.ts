@@ -71,6 +71,7 @@ export interface TrackingResult {
   trackingNumber: string;
   carrier: string;
   status: string;
+  trackingUrl?: string | null;
   events: TrackingEvent[];
 }
 
