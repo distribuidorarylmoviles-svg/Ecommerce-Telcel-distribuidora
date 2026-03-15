@@ -649,6 +649,18 @@ details.trash-group[open] .trash-group-title::after {
   gap: 8px;
   flex-wrap: wrap;
 
+  select {
+    border: 1px solid #c8d8ff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: #fff;
+    outline: none;
+    min-width: 130px;
+
+    &:focus { border-color: #0033a0; box-shadow: 0 0 0 2px rgba(0,51,160,0.1); }
+  }
+
   input {
     flex: 1;
     min-width: 180px;

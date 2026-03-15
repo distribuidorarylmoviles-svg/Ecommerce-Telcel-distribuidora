@@ -88,23 +88,21 @@ type DbCategoryRow = {
   deleted_at: string | null;
 };
 
-type SkydropxTrackingEvent = {
+type SkydropxRadarEvent = {
   status: string | null;
+  date: string | null;
   description: string | null;
   location: string | null;
-  created_at: string | null;
 };
 
-type SkydropxApiResponse = {
-  data?: Array<{
-    attributes?: {
-      tracking_number?: string;
-      status?: string;
-      carrier_name?: string;
-      tracking_events?: SkydropxTrackingEvent[];
-    };
-  }>;
+type SkydropxRadarRecord = {
+  id?: string;
+  tracking_number?: string;
+  status?: string;
+  events?: SkydropxRadarEvent[];
 };
+
+type SkydropxRadarResponse = SkydropxRadarRecord | SkydropxRadarRecord[];
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -504,33 +502,32 @@ export class AdminService {
 
   // ─── Rastreo Skydropx ────────────────────────────────────────────────────
 
-  async trackShipment(trackingNumber: string): Promise<TrackingResult> {
+  async trackShipment(trackingNumber: string, carrier: string): Promise<TrackingResult> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase.functions.invoke('track-shipment', {
-      body: { tracking_number: trackingNumber },
+      body: { tracking_number: trackingNumber, carrier },
     });
     if (error) {
       const functionError = await this.extractFunctionError(error);
       throw new Error(functionError || error.message || 'No se pudo rastrear el paquete.');
     }
-    const res = data as { ok: boolean; data?: SkydropxApiResponse; error?: string };
+    const res = data as { ok: boolean; data?: SkydropxRadarResponse; error?: string };
     if (!res.ok) throw new Error(res.error || 'No se pudo rastrear el paquete.');
-    return this.mapTrackingResult(trackingNumber, res.data);
+    return this.mapTrackingResult(trackingNumber, carrier, res.data);
   }
 
-  private mapTrackingResult(trackingNumber: string, apiData?: SkydropxApiResponse): TrackingResult {
-    const record = apiData?.data?.[0];
-    const attrs = record?.attributes;
-    const events = (attrs?.tracking_events ?? []).map((e) => ({
+  private mapTrackingResult(trackingNumber: string, carrier: string, apiData?: SkydropxRadarResponse): TrackingResult {
+    const record = Array.isArray(apiData) ? apiData[0] : apiData;
+    const events = (record?.events ?? []).map((e: SkydropxRadarEvent) => ({
       status: e.status ?? '',
       description: e.description ?? '',
       location: e.location ?? '',
-      date: e.created_at ?? '',
+      date: e.date ?? '',
     }));
     return {
-      trackingNumber: attrs?.tracking_number ?? trackingNumber,
-      carrier: attrs?.carrier_name ?? 'N/A',
-      status: attrs?.status ?? 'Sin información',
+      trackingNumber: record?.tracking_number ?? trackingNumber,
+      carrier: carrier,
+      status: record?.status ?? 'Sin información',
       events,
     };
   }

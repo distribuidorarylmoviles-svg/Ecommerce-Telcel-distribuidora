@@ -3,32 +3,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type SkydropxTokenResponse = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-};
-
-type SkydropxEvent = {
-  status: string;
+type TrackingEvent = {
+  status: string | null;
+  date: string | null;
   description: string | null;
   location: string | null;
-  created_at: string | null;
 };
 
-type SkydropxTracking = {
-  id: string;
-  type: string;
-  attributes: {
-    tracking_number: string;
-    status: string | null;
-    carrier_name: string | null;
-    tracking_events: SkydropxEvent[];
-  };
-};
-
-type SkydropxResponse = {
-  data: SkydropxTracking[];
+type TrackingRecord = {
+  id?: string;
+  tracking_number?: string;
+  status?: string;
+  events?: TrackingEvent[];
 };
 
 Deno.serve(async (req: Request) => {
@@ -37,66 +23,56 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const body = await req.json() as { tracking_number?: string };
+    const body = await req.json() as { tracking_number?: string; carrier?: string };
     const trackingNumber = body.tracking_number?.trim();
+    const carrier = body.carrier?.trim();
 
-    if (!trackingNumber) {
+    if (!trackingNumber || !carrier) {
       return new Response(
-        JSON.stringify({ ok: false, error: 'El número de guía es requerido.' }),
+        JSON.stringify({ ok: false, error: 'El número de guía y el carrier son requeridos.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const clientId = Deno.env.get('SKYDROPX_API_KEY');
-    const clientSecret = Deno.env.get('SKYDROPX_SECRET_KEY');
+    const apiKey = Deno.env.get('SKYDROPX_API_KEY');
 
-    if (!clientId || !clientSecret) {
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ ok: false, error: 'Credenciales de Skydropx no configuradas en el servidor.' }),
+        JSON.stringify({ ok: false, error: 'API key de Skydropx no configurada.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // ── 1. Obtener token OAuth2 ──────────────────────────────────────────────
-    const tokenRes = await fetch('https://api.skydropx.com/oauth/token', {
+    // ── Consultar rastreo Skydropx Radar API ────────────────────────────────
+    const trackRes = await fetch('https://radar-api.skydropx.com/v1/tracking', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Token token=${apiKey}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: 'client_credentials',
+        tracking_numbers: [{ carrier, tracking_number: trackingNumber }],
       }),
     });
 
-    if (!tokenRes.ok) {
-      const tokenErr = await tokenRes.text();
-      console.error('Skydropx token error:', tokenErr);
-      return new Response(
-        JSON.stringify({ ok: false, error: `Error de autenticación con Skydropx: ${tokenRes.status}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const tokenData = await tokenRes.json() as SkydropxTokenResponse;
-    const accessToken = tokenData.access_token;
-
-    // ── 2. Consultar rastreo ─────────────────────────────────────────────────
-    const trackRes = await fetch(
-      `https://api.skydropx.com/v1/trackings?tracking_number=${encodeURIComponent(trackingNumber)}`,
-      { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } },
-    );
-
     const trackText = await trackRes.text();
 
-    if (!trackRes.ok) {
-      console.error('Skydropx track error:', trackText);
+    if (!trackText || trackText.trim() === '') {
       return new Response(
-        JSON.stringify({ ok: false, error: `Error al consultar Skydropx: ${trackRes.status}` }),
+        JSON.stringify({ ok: false, error: 'Respuesta vacía de Skydropx.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const trackData = JSON.parse(trackText) as SkydropxResponse;
+    if (!trackRes.ok) {
+      console.error('Skydropx error:', trackText);
+      return new Response(
+        JSON.stringify({ ok: false, error: `Error de Skydropx (${trackRes.status}): ${trackText}` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const trackData = JSON.parse(trackText) as TrackingRecord | TrackingRecord[];
 
     return new Response(
       JSON.stringify({ ok: true, data: trackData }),

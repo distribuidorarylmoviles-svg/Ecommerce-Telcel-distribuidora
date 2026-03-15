@@ -59,10 +59,16 @@ export class AdminPanel implements OnInit {
   readonly statusMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly trackingInputs = signal<Record<string, string>>({});
+  readonly trackingCarriers = signal<Record<string, string>>({});
   readonly trackingResults = signal<Record<string, TrackingResult>>({});
   readonly trackingErrors = signal<Record<string, string>>({});
   readonly trackingLoading = signal<string | null>(null);
   readonly savingTrackingId = signal<string | null>(null);
+
+  readonly carrierOptions = [
+    'DHL', 'FedEx', 'Estafeta', 'Redpack', 'J&T Express',
+    '99Minutos', 'Sendex', 'Paquetexpress', 'UPS', 'Otro',
+  ];
 
   editingProductId: string | null = null;
   editingCategoryId: string | null = null;
@@ -345,13 +351,21 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  setCarrierInput(orderId: string, value: string): void {
+    this.trackingCarriers.update((c) => ({ ...c, [orderId]: value }));
+  }
+
   async trackOrder(orderId: string): Promise<void> {
     const number = this.trackingInputs()[orderId]?.trim();
-    if (!number) return;
+    const carrier = this.trackingCarriers()[orderId]?.trim();
+    if (!number || !carrier) {
+      this.trackingErrors.update((e) => ({ ...e, [orderId]: 'Ingresa el número de guía y selecciona el carrier.' }));
+      return;
+    }
     this.trackingLoading.set(orderId);
     this.trackingErrors.update((e) => ({ ...e, [orderId]: '' }));
     try {
-      const result = await this.adminService.trackShipment(number);
+      const result = await this.adminService.trackShipment(number, carrier);
       this.trackingResults.update((r) => ({ ...r, [orderId]: result }));
     } catch (error) {
       this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo rastrear el paquete.') }));
