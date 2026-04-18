@@ -1,0 +1,37 @@
+<section class="manual-page">
+
+  <div class="manual-hero">
+    <div class="manual-hero-content">
+      <div class="manual-hero-icon">
+        <i class="fas fa-book-open"></i>
+      </div>
+      <div>
+        <h1>Manual de Ayuda</h1>
+        <p>acarca de la pagina</p>
+      </div>
+      <a [href]="pdfUrl" target="_blank" class="manual-download-btn">
+        <i class="fas fa-download"></i> Descargar PDF
+      </a>
+    </div>
+  </div>
+
+  <div class="manual-container">
+    <div class="manual-pdf-wrapper">
+      <iframe
+        [src]="safePdfUrl"
+        class="manual-iframe"
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+
+      <div class="manual-fallback">
+        <i class="fas fa-file-pdf"></i>
+        <p>Tu navegador no puede mostrar el PDF directamente.</p>
+        <a [href]="pdfUrl" target="_blank" class="manual-open-btn">
+          <i class="fas fa-external-link-alt"></i> Abrir Manual
+        </a>
+      </div>
+    </div>
+  </div>
+
+</section>

@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+//import { ComprobantePedido } from '../../../shared/components/comprobante-pedido/comprobante-pedido';
 import {
   AdminCategory,
   AdminCategoryInput,
@@ -13,8 +15,17 @@ import {
 import { AdminService, StoreInfo } from '../../../core/services/admin';
 import { ExportService } from '../../../core/services/export';
 
-type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicacion' | 'papelera';
+type AdminTab = 'productos' | 'categorias' | 'compras' | 'solicitudes' | 'ubicacion' | 'papelera' | 'manual';
 type ExportFormat = 'csv' | 'excel' | 'pdf';
+
+const SHIPPING_STEPS = [
+  { key: 'pedido_confirmado', label: 'Pedido confirmado',  icon: 'fas fa-check-circle' },
+  { key: 'en_preparacion',   label: 'En preparación',     icon: 'fas fa-box-open' },
+  { key: 'enviado',          label: 'Enviado',             icon: 'fas fa-truck-fast' },
+  { key: 'en_camino',        label: 'En camino',           icon: 'fas fa-route' },
+  { key: 'en_tu_ciudad',     label: 'En tu ciudad',        icon: 'fas fa-city' },
+  { key: 'entregado',        label: 'Entregado',           icon: 'fas fa-house-circle-check' },
+];
 
 @Component({
   selector: 'app-admin-panel',
@@ -26,6 +37,11 @@ type ExportFormat = 'csv' | 'excel' | 'pdf';
 export class AdminPanel implements OnInit {
   private adminService = inject(AdminService);
   private exportService = inject(ExportService);
+  private sanitizer = inject(DomSanitizer);
+
+  readonly manualUrl: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+    'https://qqrllytqukyamfmxoszi.supabase.co/storage/v1/object/public/manuales/ManualAdministrador.pdf'
+  );
 
   readonly activeTab = signal<AdminTab>('productos');
   readonly products = signal<AdminProduct[]>([]);
@@ -48,7 +64,8 @@ export class AdminPanel implements OnInit {
   readonly savingProduct = signal(false);
   readonly savingCategory = signal(false);
   readonly savingStoreInfo = signal(false);
-  readonly uploadingVideo = signal(false); // ✅
+  readonly uploadingVideo = signal(false);
+  readonly uploadingImage = signal(false); // 👈 NUEVO
   readonly deletingCategoryId = signal<string | null>(null);
   readonly deletingOrderId = signal<string | null>(null);
   readonly resendingRequestId = signal<string | null>(null);
@@ -64,6 +81,10 @@ export class AdminPanel implements OnInit {
   readonly trackingErrors = signal<Record<string, string>>({});
   readonly trackingLoading = signal<string | null>(null);
   readonly savingTrackingId = signal<string | null>(null);
+  readonly expandedTracking = signal<Record<string, boolean>>({});
+  readonly comprobanteOrder = signal<any | null>(null);
+
+  readonly shippingSteps = SHIPPING_STEPS;
 
   readonly carrierOptions = [
     'DHL', 'FedEx', 'Estafeta', 'Redpack', 'J&T Express',
@@ -75,7 +96,8 @@ export class AdminPanel implements OnInit {
   productForm: AdminProductInput = this.emptyProductForm();
   categoryForm: AdminCategoryInput = this.emptyCategoryForm();
   storeForm: StoreInfo = this.emptyStoreForm();
-  selectedVideoFile: File | null = null; // ✅
+  selectedVideoFile: File | null = null;
+  selectedImageFile: File | null = null; // 👈 NUEVO
 
   readonly trashCount = computed(
     () =>
@@ -131,6 +153,7 @@ export class AdminPanel implements OnInit {
       videoUrl: product.videoUrl ?? null,
     };
     this.selectedVideoFile = null;
+    this.selectedImageFile = null; // 👈 NUEVO
     this.clearFeedback();
     if (typeof window !== 'undefined') {
       setTimeout(() => {
@@ -140,6 +163,18 @@ export class AdminPanel implements OnInit {
   }
 
   cancelProductEdition(): void { this.resetProductForm(); }
+
+  // 👈 NUEVO — handler de imagen
+  onImageFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (file && !file.type.startsWith('image/')) {
+      this.errorMessage.set('Solo se permiten archivos de imagen.');
+      this.selectedImageFile = null;
+      return;
+    }
+    this.selectedImageFile = file;
+  }
 
   onVideoFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -187,9 +222,16 @@ export class AdminPanel implements OnInit {
     this.clearFeedback();
 
     try {
-      let videoUrl = this.productForm.videoUrl ?? null;
+      // 👈 NUEVO — upload de imagen si se seleccionó una
+      let imageUrl = this.productForm.imageUrl ?? '';
+      if (this.selectedImageFile) {
+        this.uploadingImage.set(true);
+        const tempId = this.editingProductId ?? `temp_${Date.now()}`;
+        imageUrl = await this.adminService.uploadProductImage(this.selectedImageFile, tempId);
+        this.uploadingImage.set(false);
+      }
 
-      // Si hay un video nuevo seleccionado, subirlo primero
+      let videoUrl = this.productForm.videoUrl ?? null;
       if (this.selectedVideoFile) {
         this.uploadingVideo.set(true);
         const tempId = this.editingProductId ?? `temp_${Date.now()}`;
@@ -203,7 +245,7 @@ export class AdminPanel implements OnInit {
           name,
           description: this.productForm.description.trim(),
           category: this.productForm.category.trim(),
-          imageUrl: this.productForm.imageUrl.trim(),
+          imageUrl: imageUrl, // 👈 usa la URL subida o la URL manual
           price: Number(this.productForm.price),
           stock: Math.floor(Number(this.productForm.stock)),
           videoUrl,
@@ -215,6 +257,7 @@ export class AdminPanel implements OnInit {
       await this.loadProducts();
     } catch (error) {
       this.uploadingVideo.set(false);
+      this.uploadingImage.set(false); // 👈 NUEVO
       this.errorMessage.set(this.getErrorMessage(error, 'No se pudo guardar el producto.'));
     } finally {
       this.savingProduct.set(false);
@@ -328,6 +371,10 @@ export class AdminPanel implements OnInit {
 
   // ─── Rastreo ─────────────────────────────────────────────────────────────
 
+  toggleTracking(orderId: string): void {
+    this.expandedTracking.update((map) => ({ ...map, [orderId]: !map[orderId] }));
+  }
+
   setTrackingInput(orderId: string, value: string): void {
     this.trackingInputs.update((inputs) => ({ ...inputs, [orderId]: value }));
     this.trackingErrors.update((errs) => ({ ...errs, [orderId]: '' }));
@@ -336,28 +383,59 @@ export class AdminPanel implements OnInit {
     }
   }
 
+  setCarrierInput(orderId: string, value: string): void {
+    this.trackingCarriers.update((c) => ({ ...c, [orderId]: value }));
+  }
+
+  getStepIndex(shippingStatus: string | null): number {
+    const status = (shippingStatus ?? 'pedido_confirmado').toLowerCase();
+    const idx = SHIPPING_STEPS.findIndex((s) => s.key === status);
+    return idx >= 0 ? idx : 0;
+  }
+
   async saveOrderTracking(orderId: string): Promise<void> {
     const number = this.trackingInputs()[orderId]?.trim() ?? '';
+    const carrier = this.trackingCarriers()[orderId]?.trim() ?? '';
+    const order = this.orders().find((o) => o.id === orderId);
+    const shippingStatus = order?.shippingStatus ?? 'pedido_confirmado';
+
     this.savingTrackingId.set(orderId);
     this.trackingErrors.update((e) => ({ ...e, [orderId]: '' }));
     try {
-      await this.adminService.saveTrackingNumber(orderId, number);
-      this.orders.update((list) => list.map((o) => o.id === orderId ? { ...o, trackingNumber: number || null } : o));
-      this.statusMessage.set('Número de guía guardado.');
+      await this.adminService.saveTracking(orderId, number, carrier, shippingStatus);
+      this.orders.update((list) => list.map((o) =>
+        o.id === orderId ? { ...o, trackingNumber: number || null, carrier: carrier || null } : o
+      ));
+      this.statusMessage.set('Rastreo guardado correctamente.');
     } catch (error) {
-      this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo guardar la guía.') }));
+      this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo guardar el rastreo.') }));
     } finally {
       this.savingTrackingId.set(null);
     }
   }
 
-  setCarrierInput(orderId: string, value: string): void {
-    this.trackingCarriers.update((c) => ({ ...c, [orderId]: value }));
+  async updateShippingStatus(orderId: string, status: string): Promise<void> {
+    const number = this.trackingInputs()[orderId]?.trim() ?? '';
+    const carrier = this.trackingCarriers()[orderId]?.trim() ?? '';
+    this.savingTrackingId.set(orderId);
+    try {
+      await this.adminService.saveTracking(orderId, number, carrier, status);
+      this.orders.update((list) => list.map((o) =>
+        o.id === orderId ? { ...o, shippingStatus: status } : o
+      ));
+      this.statusMessage.set('Estado de envío actualizado.');
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error, 'No se pudo actualizar el estado.'));
+    } finally {
+      this.savingTrackingId.set(null);
+    }
   }
 
   async trackOrder(orderId: string): Promise<void> {
     const number = this.trackingInputs()[orderId]?.trim();
     const carrier = this.trackingCarriers()[orderId]?.trim();
+    const order = this.orders().find((o) => o.id === orderId);
+
     if (!number || !carrier) {
       this.trackingErrors.update((e) => ({ ...e, [orderId]: 'Ingresa el número de guía y selecciona el carrier.' }));
       return;
@@ -365,7 +443,7 @@ export class AdminPanel implements OnInit {
     this.trackingLoading.set(orderId);
     this.trackingErrors.update((e) => ({ ...e, [orderId]: '' }));
     try {
-      const result = await this.adminService.trackShipment(number, carrier);
+      const result = await this.adminService.trackShipment(number, carrier, order?.createdAt);
       this.trackingResults.update((r) => ({ ...r, [orderId]: result }));
     } catch (error) {
       this.trackingErrors.update((e) => ({ ...e, [orderId]: this.getErrorMessage(error, 'No se pudo rastrear el paquete.') }));
@@ -690,10 +768,13 @@ export class AdminPanel implements OnInit {
       const orders = await this.adminService.getOrders();
       this.orders.set(orders);
       const prefilled: Record<string, string> = {};
+      const prefilledCarriers: Record<string, string> = {};
       for (const o of orders) {
         if (o.trackingNumber) prefilled[o.id] = o.trackingNumber;
+        if (o.carrier) prefilledCarriers[o.id] = o.carrier;
       }
       this.trackingInputs.update((current) => ({ ...prefilled, ...current }));
+      this.trackingCarriers.update((current) => ({ ...prefilledCarriers, ...current }));
     }
     catch (error) { this.errorMessage.set(this.getErrorMessage(error, 'No se pudieron cargar las compras.')); }
     finally { this.ordersLoading.set(false); }
@@ -777,6 +858,7 @@ export class AdminPanel implements OnInit {
     this.editingProductId = null;
     this.productForm = this.emptyProductForm();
     this.selectedVideoFile = null;
+    this.selectedImageFile = null; // 👈 NUEVO
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {

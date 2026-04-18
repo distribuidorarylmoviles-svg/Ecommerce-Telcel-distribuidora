@@ -4,7 +4,7 @@
       <div class="logo-group">
         <a routerLink="/home" class="logo-link">
           <img src="Logo3.png" alt="R y L Moviles" class="logo-img">
-          <span class="logo-text">R y L Moviles</span>
+          <span class="logo-text">Ry L Móviles</span>
         </a>
         <div class="telcel-authorized">
           <img src="Logooriginal.png" alt="Telcel" class="telcel-img">
@@ -23,6 +23,15 @@
         <a routerLink="/ubicacion" class="header-icon-link" title="Ubicación">
           <i class="fas fa-map-marker-alt"></i>
         </a>
+        <a routerLink="/rastrear" class="header-icon-link" title="Rastrear pedido">
+          <i class="fas fa-truck-fast"></i>
+        </a>
+
+        <!-- ÍCONO DE MANUAL EN LA BARRA PRINCIPAL (solo visible en móvil) -->
+        <a routerLink="/manual" class="header-icon-link header-manual-icon" title="Manual de usuario">
+          <i class="fas fa-book-open"></i>
+        </a>
+
         @if (auth.isAuthenticated()) {
           <a routerLink="/home" class="header-icon-link" title="Mi cuenta">
             <i class="fas fa-user-circle"></i>
@@ -40,6 +49,7 @@
             <i class="fas fa-user-circle"></i>
           </a>
         }
+
         <a routerLink="/carrito" class="header-icon-link cart-icon-header" title="Ver carrito">
           <i class="fas fa-shopping-cart"></i>
           @if (cart.itemCount() > 0) {
@@ -71,6 +81,15 @@
       <div class="nav-item">
         <a routerLink="/ubicacion">Ubicación</a>
       </div>
+      
+
+      <!-- ENLACE AL MANUAL EN LA BARRA DE NAVEGACIÓN -->
+      <div class="nav-item nav-item-manual">
+        <a routerLink="/manual">
+          <i class="fas fa-book-open"></i> Manual
+        </a>
+      </div>
+
       @if (auth.isAdmin()) {
         <div class="nav-item">
           <a routerLink="/admin">Panel Admin</a>

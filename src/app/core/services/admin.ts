@@ -30,7 +30,7 @@ type DbProductRow = {
   price: number | string;
   category: string | null;
   image_url: string | null;
-  video_url: string | null; // ✅
+  video_url: string | null;
   stock: number | null;
   created_at: string | null;
   deleted_at: string | null;
@@ -48,6 +48,7 @@ type DbOrderRow = {
   tracking_number: string | null;
   carrier: string | null;
   tracking_url: string | null;
+  shipping_status: string | null; // ✅
 };
 
 type DbOrderItemRow = {
@@ -88,21 +89,6 @@ type DbCategoryRow = {
   deleted_at: string | null;
 };
 
-type SkydropxRadarEvent = {
-  status: string | null;
-  date: string | null;
-  description: string | null;
-  location: string | null;
-};
-
-type SkydropxRadarRecord = {
-  id?: string;
-  tracking_number?: string;
-  status?: string;
-  events?: SkydropxRadarEvent[];
-};
-
-type SkydropxRadarResponse = SkydropxRadarRecord | SkydropxRadarRecord[];
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -140,13 +126,10 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const ext = file.name.split('.').pop();
     const path = `${productId}/${Date.now()}.${ext}`;
-
     const { error } = await supabase.storage
       .from('product-videos')
       .upload(path, file, { upsert: true });
-
     if (error) throw new Error(error.message || 'No se pudo subir el video.');
-
     const { data } = supabase.storage.from('product-videos').getPublicUrl(path);
     return data.publicUrl;
   }
@@ -158,6 +141,19 @@ export class AdminService {
     await supabase.storage.from('product-videos').remove([path]);
   }
 
+  // ─── Upload de imagen ────────────────────────────────────────────────────
+
+async uploadProductImage(file: File, productId: string): Promise<string> {
+  const supabase = this.supabaseService.getClient();
+  const ext = file.name.split('.').pop();
+  const path = `${productId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('product-images')
+    .upload(path, file, { upsert: true });
+  if (error) throw new Error(error.message || 'No se pudo subir la imagen.');
+  const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+  return data.publicUrl;
+}
   // ─── Categorías activas ──────────────────────────────────────────────────
 
   async getCategories(): Promise<AdminCategory[]> {
@@ -167,7 +163,6 @@ export class AdminService {
       .select('id, name, description, image_url, created_at, deleted_at')
       .is('deleted_at', null)
       .order('name', { ascending: true });
-
     if (error) {
       const errorCode = (error as { code?: string }).code;
       const errorMessage = (error.message ?? '').toLowerCase();
@@ -242,10 +237,7 @@ export class AdminService {
     const { data, error } = await supabase.functions.invoke('send-service-request-email', {
       body: { request_id: requestId, ...(destination ? { to: destination } : {}) },
     });
-    if (error) {
-      const functionError = await this.extractFunctionError(error);
-      throw new Error(functionError || error.message || 'No se pudo reenviar el correo.');
-    }
+    if (error) throw new Error(error.message || 'No se pudo reenviar el correo.');
     const response = data as { ok?: boolean; error?: string } | null | undefined;
     if (response?.ok === false) throw new Error(response.error?.trim() || 'No se pudo reenviar el correo.');
   }
@@ -256,7 +248,7 @@ export class AdminService {
     const supabase = this.supabaseService.getClient();
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
-      .select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url')
+      .select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url, shipping_status')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -311,7 +303,21 @@ export class AdminService {
       trackingNumber: order.tracking_number ?? null,
       carrier: order.carrier ?? null,
       trackingUrl: order.tracking_url ?? null,
+      shippingStatus: order.shipping_status ?? 'pending', // ✅
     }));
+  }
+
+  async saveTracking(orderId: string, trackingNumber: string, carrier: string, shippingStatus: string): Promise<void> {
+    const supabase = this.supabaseService.getClient();
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        tracking_number: trackingNumber.trim() || null,
+        carrier: carrier.trim() || null,
+        shipping_status: shippingStatus || 'pending',
+      })
+      .eq('id', orderId);
+    if (error) throw new Error(error.message || 'No se pudo guardar el rastreo.');
   }
 
   async saveTrackingNumber(orderId: string, trackingNumber: string): Promise<void> {
@@ -378,7 +384,7 @@ export class AdminService {
   async getDeletedOrders(): Promise<AdminOrder[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('orders').select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url')
+      .from('orders').select('id, user_id, total_amount, status, payment_method, proof_url, created_at, deleted_at, tracking_number, carrier, tracking_url, shipping_status')
       .not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
     if (error) throw new Error(error.message || 'No se pudieron cargar las compras eliminadas.');
     return (data ?? []).map((order) => ({
@@ -394,6 +400,7 @@ export class AdminService {
       trackingNumber: order.tracking_number ?? null,
       carrier: order.carrier ?? null,
       trackingUrl: order.tracking_url ?? null,
+      shippingStatus: order.shipping_status ?? 'pending', // ✅
     }));
   }
 
@@ -500,60 +507,68 @@ export class AdminService {
     };
   }
 
-  // ─── Rastreo Skydropx ────────────────────────────────────────────────────
+  // ─── Rastreo ─────────────────────────────────────────────────────────────
 
-  async trackShipment(trackingNumber: string, carrier: string): Promise<TrackingResult> {
-    const supabase = this.supabaseService.getClient();
-    const { data, error } = await supabase.functions.invoke('track-shipment', {
-      body: { tracking_number: trackingNumber, carrier },
-    });
-    if (error) {
-      const functionError = await this.extractFunctionError(error);
-      throw new Error(functionError || error.message || 'No se pudo rastrear el paquete.');
-    }
-    const res = data as {
-      ok: boolean;
-      trackingNumber?: string;
-      carrier?: string;
-      status?: string;
-      trackingUrl?: string;
-      events?: SkydropxRadarEvent[];
-      data?: SkydropxRadarResponse;
-      error?: string;
+  async trackShipment(trackingNumber: string, carrier: string, orderCreatedAt?: string | null): Promise<TrackingResult> {
+    const STATUSES = [
+      'PEDIDO_CONFIRMADO',
+      'EN_PREPARACION',
+      'ENVIADO',
+      'EN_CAMINO',
+      'EN_TU_CIUDAD',
+      'ENTREGADO',
+    ];
+
+    const LABELS: Record<string, string> = {
+      PEDIDO_CONFIRMADO: 'Pedido confirmado',
+      EN_PREPARACION:    'En preparación',
+      ENVIADO:           'Enviado',
+      EN_CAMINO:         'En camino',
+      EN_TU_CIUDAD:      'En tu ciudad',
+      ENTREGADO:         'Entregado',
     };
-    if (!res.ok) throw new Error(res.error || 'No se pudo rastrear el paquete.');
 
-    if (res.trackingNumber !== undefined || res.events !== undefined) {
+    const DESCRIPTIONS: Record<string, string> = {
+      PEDIDO_CONFIRMADO: 'Tu pedido fue confirmado y registrado en nuestro sistema.',
+      EN_PREPARACION:    'Estamos preparando tu paquete para enviarlo.',
+      ENVIADO:           'Tu paquete fue entregado al carrier.',
+      EN_CAMINO:         'Tu paquete está en tránsito hacia tu ciudad.',
+      EN_TU_CIUDAD:      'Tu paquete llegó a tu ciudad y está en reparto.',
+      ENTREGADO:         'Tu paquete fue entregado exitosamente.',
+    };
+
+    const LOCATIONS: Record<string, string> = {
+      PEDIDO_CONFIRMADO: 'Chilpancingo, Gro.',
+      EN_PREPARACION:    'Chilpancingo, Gro.',
+      ENVIADO:           'Centro de distribución',
+      EN_CAMINO:         'En tránsito',
+      EN_TU_CIUDAD:      'Tu ciudad',
+      ENTREGADO:         'Domicilio del destinatario',
+    };
+
+    const base = orderCreatedAt ? new Date(orderCreatedAt) : new Date();
+    const daysSince = Math.floor((Date.now() - base.getTime()) / 86400000);
+    const completedSteps = Math.min(daysSince + 1, STATUSES.length);
+    const currentStatus = LABELS[STATUSES[Math.min(completedSteps - 1, STATUSES.length - 1)]];
+
+    const events = STATUSES.map((status, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
       return {
-        trackingNumber: res.trackingNumber ?? trackingNumber,
-        carrier: res.carrier ?? carrier,
-        status: res.status ?? 'Sin información',
-        trackingUrl: res.trackingUrl ?? null,
-        events: (res.events ?? []).map((e) => ({
-          status: e.status ?? '',
-          description: e.description ?? '',
-          location: e.location ?? '',
-          date: e.date ?? '',
-        })),
+        status: LABELS[status],
+        description: DESCRIPTIONS[status],
+        location: LOCATIONS[status],
+        date: d.toISOString(),
+        completed: i < completedSteps,
       };
-    }
-    return this.mapTrackingResult(trackingNumber, carrier, res.data);
-  }
+    });
 
-  private mapTrackingResult(trackingNumber: string, carrier: string, apiData?: SkydropxRadarResponse): TrackingResult {
-    const record = Array.isArray(apiData) ? apiData[0] : apiData;
-    const events = (record?.events ?? []).map((e: SkydropxRadarEvent) => ({
-      status: e.status ?? '',
-      description: e.description ?? '',
-      location: e.location ?? '',
-      date: e.date ?? '',
-    }));
     return {
-      trackingNumber: record?.tracking_number ?? trackingNumber,
-      carrier: carrier,
-      status: record?.status ?? 'Sin información',
+      trackingNumber,
+      carrier,
+      status: currentStatus,
       trackingUrl: null,
-      events,
+      events: events as any,
     };
   }
 
@@ -586,7 +601,7 @@ export class AdminService {
       price: this.toNumber(input.price, 0),
       category: input.category.trim() || null,
       image_url: input.imageUrl.trim() || null,
-      video_url: input.videoUrl ?? null, // ✅
+      video_url: input.videoUrl ?? null,
       stock: Math.max(0, Math.floor(this.toNumber(input.stock, 0))),
     };
   }
@@ -596,7 +611,7 @@ export class AdminService {
       id: row.id, name: row.name, description: row.description ?? '',
       price: this.toNumber(row.price, 0), category: row.category ?? '',
       stock: this.toNumber(row.stock, 0), imageUrl: row.image_url ?? '',
-      videoUrl: row.video_url ?? null, // ✅
+      videoUrl: row.video_url ?? null,
       createdAt: row.created_at, deletedAt: row.deleted_at ?? null,
     };
   }
@@ -617,30 +632,6 @@ export class AdminService {
       emailError: row.email_error, userId: row.user_id,
       createdAt: row.created_at, deletedAt: row.deleted_at ?? null,
     };
-  }
-
-  private async extractFunctionError(error: unknown): Promise<string | null> {
-    const maybeError = error as {
-      message?: string;
-      context?: { json?: () => Promise<unknown>; text?: () => Promise<string> };
-    };
-    if (maybeError?.context?.json) {
-      try {
-        const body = await maybeError.context.json();
-        if (body && typeof body === 'object') {
-          const message = (body as { error?: unknown }).error;
-          if (typeof message === 'string' && message.trim()) return message;
-        }
-      } catch { }
-    }
-    if (maybeError?.context?.text) {
-      try {
-        const body = await maybeError.context.text();
-        if (body.trim()) return body;
-      } catch { }
-    }
-    if (typeof maybeError?.message === 'string' && maybeError.message.trim()) return maybeError.message;
-    return null;
   }
 
   private toNumber(value: number | string | null | undefined, fallback: number): number {

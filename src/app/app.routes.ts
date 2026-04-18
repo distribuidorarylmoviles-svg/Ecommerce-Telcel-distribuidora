@@ -16,6 +16,8 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { AdminPanel } from './features/admin/admin-panel/admin-panel';
 import { PedidoExitoso } from './pages/pedido-exitoso/pedido-exitoso';
+//import { Rastrear } from './features/rastrear/rastrear';
+import { ManualComponent } from './features/manual/manual.component'; // ← NUEVO
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -34,5 +36,7 @@ export const routes: Routes = [
   { path: 'recuperar-contrasena', component: ForgotPassword },
   { path: 'restablecer-contrasena', component: ResetPassword },
   { path: 'pedido-exitoso', component: PedidoExitoso },
-  { path: '**', redirectTo: 'home' }
+  //{ path: 'rastrear', component: Rastrear },
+  { path: 'manual', component: ManualComponent }, // ← NUEVO
+  { path: '**', redirectTo: 'home' },
 ];

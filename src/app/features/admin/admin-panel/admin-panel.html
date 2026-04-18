@@ -40,6 +40,10 @@
     <button type="button" [class.active]="activeTab() === 'categorias'" (click)="selectTab('categorias')">Categorías</button>
     <button type="button" [class.active]="activeTab() === 'solicitudes'" (click)="selectTab('solicitudes')">Solicitudes de servicios</button>
     <button type="button" [class.active]="activeTab() === 'ubicacion'" (click)="selectTab('ubicacion')">Ubicación</button>
+    <!-- ── NUEVA PESTAÑA AYUDA ── -->
+    <button type="button" [class.active]="activeTab() === 'manual'" (click)="selectTab('manual')">
+      <i class="fas fa-circle-question"></i> Ayuda
+    </button>
     <button type="button" class="tab-trash" [class.active]="activeTab() === 'papelera'" (click)="selectTab('papelera')">
       <i class="fas fa-trash-can"></i>
       Papelera
@@ -337,12 +341,31 @@
                 </button>
               </div>
             </header>
+
             <div class="card-grid">
               <p><strong>Total:</strong> {{ order.totalAmount | currency:'MXN':'symbol-narrow' }}</p>
               <p><strong>Método de pago:</strong> {{ order.paymentMethod }}</p>
               <p><strong>Usuario:</strong> {{ order.userId || 'N/A' }}</p>
               <p><strong>Fecha:</strong> {{ order.createdAt ? (order.createdAt | date:'medium') : 'N/A' }}</p>
+              <p>
+                <strong>Estado de envío:</strong>
+                @for (step of shippingSteps; track step.key) {
+                  @if (step.key === (order.shippingStatus || 'pedido_confirmado')) {
+                    <span class="status-chip shipping">
+                      <i [class]="step.icon"></i> {{ step.label }}
+                    </span>
+                  }
+                }
+              </p>
             </div>
+
+            <!-- Comprobante de pedido -->
+            <div style="margin-bottom: 12px;">
+              <button type="button" class="btn-inline" (click)="comprobanteOrder.set(order)">
+                <i class="fas fa-file-invoice"></i> Ver comprobante de pedido
+              </button>
+            </div>
+
             <details>
               <summary>Productos ({{ order.items.length }})</summary>
               @if (order.items.length === 0) {
@@ -356,6 +379,7 @@
               }
             </details>
 
+            <!-- ── RASTREO ── -->
             <div class="tracking-section">
               <p class="tracking-label"><i class="fas fa-truck"></i> Rastreo de paquete</p>
               <div class="tracking-input-row">
@@ -416,7 +440,7 @@
                   } @else {
                     <ul class="tracking-events">
                       @for (event of result.events; track event.date + event.status) {
-                        <li class="tracking-event">
+                        <li class="tracking-event" [class.completed]="event.completed" [class.pending]="!event.completed">
                           <span class="event-dot"></span>
                           <div class="event-body">
                             <span class="event-status">{{ event.status }}</span>
@@ -431,6 +455,63 @@
                 </div>
               }
             </div>
+
+            <!-- Timeline de estado de envío -->
+            <div class="shipping-status-section">
+              <button
+                type="button"
+                class="btn-inline shipping-toggle"
+                (click)="toggleTracking(order.id)"
+              >
+                <i class="fas fa-truck-fast"></i>
+                {{ expandedTracking()[order.id] ? 'Ocultar estado de envío' : 'Gestionar estado de envío' }}
+                <i class="fas" [class.fa-chevron-up]="expandedTracking()[order.id]" [class.fa-chevron-down]="!expandedTracking()[order.id]"></i>
+              </button>
+
+              @if (expandedTracking()[order.id]) {
+                <div class="shipping-timeline-wrapper">
+                  <div class="shipping-timeline">
+                    @for (step of shippingSteps; track step.key; let i = $index) {
+                      <div
+                        class="timeline-step"
+                        [class.completed]="i <= getStepIndex(order.shippingStatus)"
+                        [class.current]="i === getStepIndex(order.shippingStatus)"
+                      >
+                        <div class="timeline-icon">
+                          <i [class]="step.icon"></i>
+                        </div>
+                        <span class="timeline-label">{{ step.label }}</span>
+                        @if (i < shippingSteps.length - 1) {
+                          <div class="timeline-connector" [class.completed]="i < getStepIndex(order.shippingStatus)"></div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <div class="shipping-status-actions">
+                    <p class="shipping-actions-label"><i class="fas fa-pen-to-square"></i> Cambiar estado:</p>
+                    <div class="shipping-status-buttons">
+                      @for (step of shippingSteps; track step.key) {
+                        <button
+                          type="button"
+                          class="btn-status"
+                          [class.active]="(order.shippingStatus || 'pedido_confirmado') === step.key"
+                          [disabled]="savingTrackingId() === order.id"
+                          (click)="updateShippingStatus(order.id, step.key)"
+                        >
+                          <i [class]="step.icon"></i>
+                          {{ step.label }}
+                        </button>
+                      }
+                    </div>
+                    @if (savingTrackingId() === order.id) {
+                      <p class="saving-hint"><i class="fas fa-spinner fa-spin"></i> Guardando estado...</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
           </article>
         }
       }
@@ -554,6 +635,37 @@
             </div>
           </form>
         }
+      </article>
+    </section>
+  }
+
+  <!-- ── AYUDA ──────────────────────────────────────────────────────── -->
+  @if (activeTab() === 'manual') {
+    <section class="manual-section">
+      <article class="content-card manual-card">
+        <header>
+          <div>
+            <h3><i class="fas fa-circle-question"></i> Ayuda</h3>
+            <p class="manual-subtitle">Consulta aquí la guía completa de uso del panel administrativo.</p>
+          </div>
+          <a
+            class="btn-primary btn-download"
+            href="https://qqrllytqukyamfmxoszi.supabase.co/storage/v1/object/public/manuales/Manual%20de%20la%20Pagina.pdf"
+            target="_blank"
+            rel="noopener"
+            download
+          >
+            <i class="fas fa-download"></i> Descargar PDF
+          </a>
+        </header>
+        <div class="manual-viewer-wrapper">
+          <iframe
+            class="manual-viewer"
+            [src]="manualUrl"
+            title="Manual de la página"
+            frameborder="0"
+          ></iframe>
+        </div>
       </article>
     </section>
   }
@@ -766,5 +878,12 @@
       }
     </section>
   }
+
+  <!-- @if (comprobanteOrder()) {
+  <app-comprobante-pedido
+    [data]="comprobanteOrder()!"
+    (closed)="comprobanteOrder.set(null)"
+  />
+} -->
 
 </section>

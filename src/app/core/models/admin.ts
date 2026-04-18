@@ -6,7 +6,7 @@ export interface AdminProduct {
   category: string;
   stock: number;
   imageUrl: string;
-  videoUrl: string | null; // ✅
+  videoUrl: string | null;
   createdAt: string | null;
   deletedAt: string | null;
 }
@@ -33,7 +33,7 @@ export interface AdminProductInput {
   category: string;
   stock: number;
   imageUrl: string;
-  videoUrl: string | null; // ✅
+  videoUrl: string | null;
 }
 
 export interface AdminOrderItem {
@@ -58,6 +58,7 @@ export interface AdminOrder {
   trackingNumber: string | null;
   carrier: string | null;
   trackingUrl: string | null;
+  shippingStatus: string | null; // ✅
 }
 
 export interface TrackingEvent {
@@ -65,6 +66,7 @@ export interface TrackingEvent {
   description: string;
   location: string;
   date: string;
+  completed: boolean; // ✅
 }
 
 export interface TrackingResult {

@@ -270,6 +270,15 @@ td p {
   border-color: #f1c2c2;
 }
 
+.status-chip.shipping {
+  background: #e8f0ff;
+  color: #0033a0;
+  border-color: #b8ccff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .card-list {
   display: grid;
   gap: 12px;
@@ -621,6 +630,375 @@ details.trash-group[open] .trash-group-title::after {
   text-align: center;
 }
 
+// ── Rastreo ──────────────────────────────────────────────────────────────────
+
+.tracking-section {
+  margin-top: 14px;
+  border-top: 1px solid #e8ecf6;
+  padding-top: 14px;
+}
+
+.tracking-label {
+  font-weight: 700;
+  color: #173a80;
+  font-size: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tracking-input-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 10px;
+
+  select {
+    min-width: 130px;
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
+.tracking-external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #0033a0;
+  text-decoration: none;
+  margin-bottom: 8px;
+
+  &:hover { text-decoration: underline; }
+}
+
+.tracking-result {
+  background: #f4f7ff;
+  border: 1px solid #d4e0ff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 10px;
+}
+
+.tracking-summary {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.tracking-no-events {
+  color: #6074a3;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.tracking-events {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+
+.tracking-event {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-left: 2px solid #d4e0ff;
+  margin-left: 8px;
+  padding-left: 16px;
+  position: relative;
+
+  &.completed {
+    border-left-color: #0033a0;
+
+    .event-dot {
+      background: #0033a0;
+      border-color: #0033a0;
+    }
+
+    .event-status { color: #0033a0; }
+  }
+
+  &.pending {
+    border-left-color: #d4e0ff;
+    opacity: 0.5;
+
+    .event-dot {
+      background: #fff;
+      border-color: #b0c4f0;
+    }
+  }
+}
+
+.event-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #0033a0;
+  border: 2px solid #0033a0;
+  position: absolute;
+  left: -7px;
+  top: 14px;
+  flex-shrink: 0;
+}
+
+.event-body {
+  display: grid;
+  gap: 2px;
+}
+
+.event-status {
+  font-weight: 700;
+  font-size: 13px;
+  color: #173a80;
+}
+
+.event-desc {
+  font-size: 12px;
+  color: #4d6188;
+}
+
+.event-location {
+  font-size: 12px;
+  color: #6074a3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-date {
+  font-size: 11px;
+  color: #8a9fc0;
+}
+
+// ── Timeline de envío estilo Mercado Libre ───────────────────────────────────
+
+.shipping-status-section {
+  margin-top: 14px;
+  border-top: 1px solid #e8ecf6;
+  padding-top: 14px;
+}
+
+.shipping-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef3ff;
+  color: #0033a0;
+  border: 1px solid #c8d8ff;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #dce8ff;
+  }
+}
+
+.shipping-timeline-wrapper {
+  margin-top: 16px;
+  background: #f8faff;
+  border: 1px solid #d4e0ff;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+// Timeline horizontal
+.shipping-timeline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  position: relative;
+  min-width: 80px;
+
+  .timeline-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #e8ecf6;
+    border: 2px solid #c8d4ef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #8a9fc0;
+    z-index: 1;
+    transition: all 0.3s;
+  }
+
+  .timeline-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a9fc0;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .timeline-connector {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #d4e0ff;
+    z-index: 0;
+    transition: background 0.3s;
+
+    &.completed {
+      background: #0033a0;
+    }
+  }
+
+  &.completed {
+    .timeline-icon {
+      background: #0033a0;
+      border-color: #0033a0;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 51, 160, 0.3);
+    }
+
+    .timeline-label {
+      color: #0033a0;
+      font-weight: 700;
+    }
+  }
+
+  &.current {
+    .timeline-icon {
+      background: #0052ff;
+      border-color: #0052ff;
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(0, 82, 255, 0.2);
+      animation: pulse 1.5s infinite;
+    }
+
+    .timeline-label {
+      color: #0033a0;
+      font-weight: 800;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(0, 82, 255, 0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 82, 255, 0.1); }
+}
+
+// Botones de estado
+.shipping-status-actions {
+  border-top: 1px solid #e0e8f8;
+  padding-top: 16px;
+}
+
+.shipping-actions-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3a5499;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shipping-status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-status {
+  border: 1.5px solid #c8d8ff;
+  background: #fff;
+  color: #3a5499;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover:not(:disabled) {
+    background: #eef3ff;
+    border-color: #0033a0;
+    color: #0033a0;
+  }
+
+  &.active {
+    background: #0033a0;
+    border-color: #0033a0;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(0, 51, 160, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.saving-hint {
+  font-size: 12px;
+  color: #4d6188;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Video upload ──────────────────────────────────────────────────────────────
+
+.video-upload-section {
+  display: grid;
+  gap: 8px;
+}
+
+.video-preview {
+  display: grid;
+  gap: 6px;
+}
+
+.video-selected-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #3a5499;
+  background: #eef3ff;
+  border: 1px solid #c8d8ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
 @media (max-width: 1024px) {
   .products-layout {
     grid-template-columns: 1fr;
@@ -769,5 +1147,97 @@ details.trash-group[open] .trash-group-title::after {
 
   .form-actions {
     flex-direction: column;
+  }
+
+  .shipping-timeline {
+    gap: 0;
+  }
+
+  .timeline-step {
+    min-width: 60px;
+
+    .timeline-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 13px;
+    }
+
+    .timeline-label {
+      font-size: 10px;
+    }
+  }
+
+  .shipping-status-buttons {
+    gap: 6px;
+  }
+
+  .btn-status {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+// ── Ayuda / Manual ───────────────────────────────────────────────────────────
+
+.manual-section {
+  display: grid;
+  gap: 14px;
+}
+
+.manual-card {
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #173a80;
+    margin: 0 0 4px;
+    font-size: 20px;
+  }
+}
+
+.manual-subtitle {
+  color: #5d729f;
+  font-size: 14px;
+  margin: 0;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+
+.manual-viewer-wrapper {
+  border: 1px solid #d4e0ff;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f4f7ff;
+}
+
+.manual-viewer {
+  width: 100%;
+  height: 75vh;
+  min-height: 500px;
+  display: block;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .manual-viewer {
+    height: 60vh;
+    min-height: 400px;
   }
 }
